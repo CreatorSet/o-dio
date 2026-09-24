@@ -3,10 +3,12 @@ import { createEngine, type Engine } from "./audio";
 import { draw, PALETTES, STYLES, type Palette, type Scene, type StyleId } from "./visualizers";
 import { download, startRecording } from "./export";
 import { computePeaks, Transport, type Peaks } from "./Transport";
-import { CAPTION_STYLES, decodeForWhisper, transcribe, type CaptionStyle, type Transcribe } from "./captions";
+import { CAPTION_STYLES, decodeForWhisper, groupLines, transcribe, type CaptionStyle, type Transcribe } from "./captions";
 
 /** Where "Generate with AI" goes. Override with VITE_BG_API when self-hosting; see the README. */
 const BG_API = import.meta.env.VITE_BG_API || "https://creatorset.com/api/odio/background";
+/** Hands out a short-lived token + the Modal URL for cloud captions (Whisper large-v3-turbo). */
+const CAPTIONS_TOKEN_API = import.meta.env.VITE_CAPTIONS_TOKEN_API || "https://creatorset.com/api/odio/captions-token";
 
 const ASPECTS = [
   { id: "16:9", w: 1920, h: 1080 },
@@ -258,20 +260,40 @@ export default function App() {
     download(blob, `${(title || trackName || "o-dio").replace(/[^\w\- ]+/g, "")}.${ext}`);
   };
 
+  // Captions: cloud first (Whisper large-v3-turbo on Modal, ~10-30 s), browser Whisper-base if
+  // the cloud says no (offline, rate limit, self-hosted build without an endpoint).
   const makeCaptions = async () => {
     const f = trackFile.current;
     if (!f || captionJob) return;
     try {
-      setCaptionJob("Decoding audio…");
-      const audio = await decodeForWhisper(f);
-      setCaptionJob("Loading Whisper (first time downloads ~80 MB)…");
-      const tr = await transcribe(audio, (p) => {
-        if (p.type === "load") setCaptionJob(`Loading Whisper… ${Math.round(p.progress)}%`);
-        else setCaptionJob(p.text);
-      });
+      let tr: Transcribe | null = null;
+      try {
+        setCaptionJob("Sending to the cloud…");
+        const tk = await fetch(CAPTIONS_TOKEN_API);
+        const tj = await tk.json().catch(() => ({}));
+        if (!tk.ok || !tj.token) throw new Error(tj.detail || `HTTP ${tk.status}`);
+        setCaptionJob("Transcribing in the cloud… ~20 s");
+        const fd = new FormData();
+        fd.append("file", f, f.name);
+        const r = await fetch(tj.url, { method: "POST", headers: { "x-odio-token": tj.token }, body: fd });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+        const words = (j.words as { text: string; start: number; end: number }[]) || [];
+        tr = { words, lines: groupLines(words) };
+      } catch (cloudErr) {
+        console.warn("cloud captions failed, falling back to the browser", cloudErr);
+        setCaptionJob("Cloud unavailable · decoding for browser Whisper…");
+        const audio = await decodeForWhisper(f);
+        setCaptionJob("Loading Whisper (first time downloads ~80 MB)…");
+        tr = await transcribe(audio, (p) => {
+          if (p.type === "load") setCaptionJob(`Loading Whisper… ${Math.round(p.progress)}%`);
+          else setCaptionJob(p.text);
+        });
+      }
       setCaptions(tr);
       if (captionStyle === "off") setCaptionStyle("karaoke");
-      setCaptionJob(null);
+      setCaptionJob(tr.words.length ? null : "No lyrics heard in this track");
+      if (!tr.words.length) setTimeout(() => setCaptionJob(null), 5000);
     } catch (e) {
       setCaptionJob(`Failed: ${(e as Error).message}`);
       setTimeout(() => setCaptionJob(null), 6000);
@@ -434,7 +456,7 @@ export default function App() {
         <section>
           <h2>6 · Captions</h2>
           <button className="live" onClick={makeCaptions} disabled={!trackFile.current || captionJob !== null || live !== null}>
-            {captionJob ?? (captions ? `✓ ${captions.words.length} words · transcribe again` : "Transcribe lyrics with Whisper (in your browser)")}
+            {captionJob ?? (captions ? `✓ ${captions.words.length} words · transcribe again` : "Transcribe lyrics (Whisper, cloud)")}
           </button>
           {captions && (
             <div className="row">

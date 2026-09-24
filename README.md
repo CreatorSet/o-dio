@@ -39,3 +39,7 @@ MIT. Made by [CreatorSet](https://creatorset.com).
 ## AI background
 
 "Generate" in the Color section posts `{ prompt, aspect }` to a small endpoint that starts a Nano Banana 2 task and returns `{ taskId }`; the app then polls `GET ?taskId=` until it gets `{ state: "success", dataUrl }`. The default endpoint is CreatorSet's (`https://creatorset.com/api/odio/background`, 12 per hour per IP). Self-hosting? Set `VITE_BG_API` at build time to your own; the reference implementation is `src/pages/api/odio/background.ts` in the CreatorSet shop.
+
+## Captions
+
+"Transcribe lyrics" asks `VITE_CAPTIONS_TOKEN_API` (default CreatorSet's `/api/odio/captions-token`) for a short-lived token and the upload URL, then posts the file there (a Modal app running faster-whisper large-v3-turbo with word timestamps; source in the CreatorSet API repo under `modal/whisper/`). If that fails for any reason the app falls back to Whisper-base in the browser via transformers.js, so a fork with no backend still works.
