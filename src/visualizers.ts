@@ -11,12 +11,16 @@ export const PALETTES: Palette[] = [
   { name: "Gold", bg: ["#0d0a02", "#2a1e06"], fg: ["#ffd700", "#ff9d00", "#fff2b0"], text: "#fff8dc" },
 ];
 
-export type StyleId = "xp" | "radial" | "wave" | "orb";
+export type StyleId = "xp" | "radial" | "wave" | "orb" | "bars" | "rings" | "dots" | "scope";
 export const STYLES: { id: StyleId; label: string }[] = [
   { id: "xp", label: "XP" },
   { id: "radial", label: "Radial" },
   { id: "wave", label: "Wave" },
   { id: "orb", label: "Orb" },
+  { id: "bars", label: "Bars" },
+  { id: "rings", label: "Rings" },
+  { id: "dots", label: "Dots" },
+  { id: "scope", label: "Scope" },
 ];
 
 export type Scene = {
@@ -45,6 +49,16 @@ let smoothLevel = 0;
 let bassEnv = 0, prevBass = 0, kickEnv = 0;
 type Dust = { x: number; y: number; r: number; v: number; a: number; d: number };
 const dust: Dust[] = [];
+// per-band envelope followers: fast attack, slow release, so bars breathe instead of flicker
+const env = new Map<number, Float32Array>();
+function smoothBands(eng: Engine | null, n: number, attack = 0.5, release = 0.08) {
+  const raw = eng ? eng.bands(n) : new Float32Array(n);
+  let e = env.get(n);
+  if (!e) { e = new Float32Array(n); env.set(n, e); }
+  for (let i = 0; i < n; i++) e[i] += (raw[i] - e[i]) * (raw[i] > e[i] ? attack : release);
+  return e;
+}
+const ringHist: Float32Array[] = [];
 
 function alive(ctx: CanvasRenderingContext2D, eng: Engine | null, p: Palette, w: number, h: number, t: number) {
   const b = eng ? eng.bands(12) : new Float32Array(12);
@@ -370,6 +384,164 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.restore();
     }
     text(ctx, scene, w, h, cy + short * 0.42);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+  }
+
+  if (scene.style === "bars") {
+    // mirrored spectrum rising from a floor, gradient by height, soft glow
+    const n = 64;
+    const b = smoothBands(eng, n);
+    const margin = w * 0.06, gap = w * 0.004;
+    const bw = (w - margin * 2 - gap * (n - 1)) / n;
+    const floor = h * 0.62, maxH = h * 0.42;
+    const g = fgGradient(ctx, 0, floor, 0, floor - maxH, p);
+    ctx.shadowColor = p.fg[0];
+    ctx.shadowBlur = short * (0.01 + kickEnv * 0.02);
+    for (let i = 0; i < n; i++) {
+      const v = Math.pow(b[i], 1.2);
+      const x = margin + i * (bw + gap);
+      const bh = Math.max(bw * 0.4, v * maxH);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.roundRect(x, floor - bh, bw, bh, bw * 0.3);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    // reflection
+    ctx.globalAlpha = 0.18;
+    for (let i = 0; i < n; i++) {
+      const v = Math.pow(b[i], 1.2);
+      const x = margin + i * (bw + gap);
+      const bh = Math.max(bw * 0.4, v * maxH) * 0.5;
+      ctx.fillStyle = p.fg[1];
+      ctx.beginPath();
+      ctx.roundRect(x, floor + h * 0.01, bw, bh, bw * 0.3);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (scene.cover) roundedImage(ctx, scene.cover, cx - short * 0.11, floor - maxH - short * 0.28, short * 0.22, short * 0.02);
+    text(ctx, scene, w, h, floor + h * 0.22);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+  }
+
+  if (scene.style === "rings") {
+    // concentric rings: each frame the spectrum becomes a new inner ring and the old ones drift outward
+    const n = 180;
+    const b = smoothBands(eng, n, 0.6, 0.15);
+    const cy = h * 0.46;
+    ringHist.unshift(Float32Array.from(b));
+    if (ringHist.length > 14) ringHist.pop();
+    const r0 = short * 0.08 * (1 + bassEnv * 0.3);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(t * 0.05);
+    ctx.lineJoin = "round";
+    for (let k = ringHist.length - 1; k >= 0; k--) {
+      const ring = ringHist[k];
+      const base = r0 + k * short * 0.028;
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const r = base + Math.pow(ring[i % n], 1.4) * short * 0.13;
+        const x = Math.cos(a) * r, y = Math.sin(a) * r;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = p.fg[k % p.fg.length];
+      ctx.globalAlpha = 1 - k / ringHist.length;
+      ctx.lineWidth = Math.max(1.5, short * (0.006 - k * 0.0003));
+      ctx.shadowColor = p.fg[k % p.fg.length];
+      ctx.shadowBlur = k === 0 ? short * (0.015 + kickEnv * 0.03) : 0;
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    if (scene.cover) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r0 * 0.92, 0, Math.PI * 2);
+      ctx.clip();
+      const s0 = r0 * 2, ar = scene.cover.width / scene.cover.height;
+      const dw = ar >= 1 ? s0 * ar : s0, dh = ar >= 1 ? s0 : s0 / ar;
+      ctx.drawImage(scene.cover, cx - dw / 2, cy - dh / 2, dw, dh);
+      ctx.restore();
+    }
+    text(ctx, scene, w, h, cy + short * 0.44);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+  }
+
+  if (scene.style === "dots") {
+    // a grid of dots; each column is a band, dots light up from the middle outward
+    const cols = 32, rows = 15;
+    const b = smoothBands(eng, cols, 0.6, 0.12);
+    const gw = w * 0.86, gh = h * 0.6;
+    const x0 = (w - gw) / 2, y0 = h * 0.12;
+    const cw = gw / cols, rh = gh / rows;
+    const rad = Math.min(cw, rh) * 0.32;
+    const mid = (rows - 1) / 2;
+    for (let i = 0; i < cols; i++) {
+      const v = Math.pow(b[i], 1.1) * (mid + 0.5);
+      for (let j = 0; j < rows; j++) {
+        const d = Math.abs(j - mid);
+        const lit = d < v;
+        const edge = lit && d > v - 1;
+        const x = x0 + cw * (i + 0.5), y = y0 + rh * (j + 0.5);
+        ctx.beginPath();
+        ctx.arc(x, y, rad * (lit ? 1 + kickEnv * 0.3 : 0.55), 0, Math.PI * 2);
+        if (lit) {
+          ctx.fillStyle = p.fg[Math.min(p.fg.length - 1, Math.floor((d / mid) * p.fg.length))];
+          ctx.globalAlpha = edge ? 0.6 : 1;
+          ctx.shadowColor = ctx.fillStyle as string;
+          ctx.shadowBlur = short * 0.012;
+        } else {
+          ctx.fillStyle = p.fg[2];
+          ctx.globalAlpha = 0.08;
+          ctx.shadowBlur = 0;
+        }
+        ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    text(ctx, scene, w, h, y0 + gh + h * 0.12);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+  }
+
+  if (scene.style === "scope") {
+    // oscilloscope: phosphor grid, a bright trace with a soft afterglow, Lissajous-ish sway on bass
+    const grid = short * 0.06;
+    ctx.strokeStyle = p.fg[2];
+    ctx.globalAlpha = 0.12;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = (w / 2) % grid; x < w; x += grid) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+    for (let y = (h / 2) % grid; y < h; y += grid) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    ctx.stroke();
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+    const pts = 512;
+    const wv = eng ? eng.waveform(pts) : new Float32Array(pts);
+    const cy = h * 0.5, amp = h * 0.28 * (1 + bassEnv * 0.3);
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.beginPath();
+      for (let i = 0; i < pts; i++) {
+        const x = (i / (pts - 1)) * w;
+        const y = cy + wv[i] * amp;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.strokeStyle = pass === 0 ? p.fg[0] : "#ffffff";
+      ctx.lineWidth = pass === 0 ? short * 0.012 : short * 0.003;
+      ctx.globalAlpha = pass === 0 ? 0.45 : 0.95;
+      ctx.shadowColor = p.fg[0];
+      ctx.shadowBlur = pass === 0 ? short * 0.03 : 0;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    if (scene.cover) roundedImage(ctx, scene.cover, w * 0.04, h * 0.05, short * 0.16, short * 0.015);
+    text(ctx, scene, w, h, h * 0.88);
     drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
   }
 }
