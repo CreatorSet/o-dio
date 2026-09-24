@@ -25,7 +25,8 @@ input[type="text"], input:not([type]) { background: #14141c; border: 1px solid #
 .row.actions button { padding: 11px; font-weight: 600; }
 .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: #14141c; border: 1px solid #26263a; border-radius: 12px; padding: 12px; cursor: pointer; color: #c9c9d9; text-align: left; font: inherit; min-width: 0; }
-.card:hover { border-color: #7b2dff; }
+.card:hover { border-color: #7b2dff; background: #181824; }
+.card.on:hover { border-color: #fff; }
 .card.on { border-color: #ff2d95; background: #1f1424; color: #fff; }
 .card input { display: none; }
 .card .ic { font-size: 20px; line-height: 1; color: #ff2d95; margin-bottom: 4px; }

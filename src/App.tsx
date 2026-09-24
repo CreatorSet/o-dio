@@ -290,9 +290,9 @@ export default function App() {
           <div className="cards">
             <label className={trackName && !live ? "card on" : "card"}>
               <input type="file" accept="audio/*,video/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
-              <span className="ic">♪</span>
-              <b>{trackName ? "Track loaded" : "Upload a track"}</b>
-              <small>{trackName || "Drop, paste or pick a file"}</small>
+              <span className="ic">{trackName && !live ? "↻" : "♪"}</span>
+              <b>{trackName && !live ? "Change track" : "Upload a track"}</b>
+              <small>{trackName && !live ? `${trackName} · click to pick another` : "Drop, paste or pick a file"}</small>
             </label>
             <button className={live ? "card on" : "card"} onClick={listenLive} disabled={exporting !== null}>
               <span className="ic">{live ? "●" : "◉"}</span>
