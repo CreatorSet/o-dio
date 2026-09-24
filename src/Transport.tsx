@@ -153,12 +153,12 @@ export function Transport({ audio, eng, peaks, live, playing, enabled, accent, o
   return (
     <div className={enabled ? "transport" : "transport off"}>
       <div className="tControls">
-        <button onClick={() => skip(-10)} disabled={!enabled || live} title="Back 10 s">‹10</button>
-        <button className="play" onClick={onToggle} disabled={!enabled || live} title={playing ? "Pause" : "Play"}>
-          {live ? "●" : playing ? "❚❚" : "▶"}
+        {!live && <button onClick={() => skip(-10)} disabled={!enabled} title="Back 10 s">‹10</button>}
+        <button className={live ? "play stop" : "play"} onClick={onToggle} disabled={!enabled} title={live ? "Stop listening" : playing ? "Pause" : "Play"}>
+          {live ? "■" : playing ? "❚❚" : "▶"}
         </button>
-        <button onClick={() => skip(10)} disabled={!enabled || live} title="Forward 10 s">10›</button>
-        <span className="tTime">{live ? "LIVE" : `${fmt(time.t)} / ${fmt(time.d)}`}</span>
+        {!live && <button onClick={() => skip(10)} disabled={!enabled} title="Forward 10 s">10›</button>}
+        <span className="tTime">{live ? <span className="liveDot">● LIVE</span> : `${fmt(time.t)} / ${fmt(time.d)}`}</span>
       </div>
       <canvas
         ref={waveRef}

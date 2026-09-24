@@ -79,3 +79,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .tile:hover { border-color: #7b2dff; color: #fff; }
 .tile.on { border-color: #ff2d95; background: #1f1424; color: #fff; box-shadow: 0 0 0 1px #ff2d95 inset; }
 .tile.on svg { color: #ff2d95; }
+
+.tControls button.play.stop { background: #ff2d95; }
+.liveDot { color: #ff2d95; font-weight: 700; animation: blink 1.2s infinite; }
+@keyframes blink { 50% { opacity: 0.35; } }

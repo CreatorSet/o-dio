@@ -148,8 +148,10 @@ export default function App() {
 
   // Listen to whatever the user is playing: a tab / screen share with audio (Chrome), else the mic
   // (which also catches speakers or a loopback device like BlackHole). Stops when the share ends.
+  const liveRef = useRef<MediaStream | null>(null);
   const stopLive = () => {
-    live?.stream.getTracks().forEach((t) => t.stop());
+    liveRef.current?.getTracks().forEach((t) => t.stop());
+    liveRef.current = null;
     engRef.current?.live(null);
     setLive(null);
   };
@@ -175,6 +177,7 @@ export default function App() {
       } catch { return; }
     }
     stream.getAudioTracks()[0].addEventListener("ended", stopLive);
+    liveRef.current = stream;
     eng.live(stream);
     setLive({ stream, kind });
   };
@@ -428,7 +431,7 @@ export default function App() {
           playing={playing}
           enabled={Boolean(trackName) || live !== null}
           accent={PALETTES[paletteIdx].fg[0]}
-          onToggle={toggle}
+          onToggle={live ? stopLive : toggle}
         />
       </main>
       <audio ref={audioRef} crossOrigin="anonymous" />
