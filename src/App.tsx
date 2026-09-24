@@ -7,7 +7,6 @@ const ASPECTS = [
   { id: "16:9", w: 1920, h: 1080 },
   { id: "9:16", w: 1080, h: 1920 },
   { id: "1:1", w: 1080, h: 1080 },
-  { id: "16:9", w: 1920, h: 1080 },
 ] as const;
 
 export default function App() {
