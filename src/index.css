@@ -52,16 +52,20 @@ button:disabled { opacity: 0.4; cursor: default; }
   .panel { border-right: none; border-bottom: 1px solid #1d1d28; }
 }
 
-.transport { width: min(100%, 960px); display: grid; grid-template-columns: auto 1fr 150px; gap: 12px; align-items: center; background: #101018; border: 1px solid #1d1d28; border-radius: 14px; padding: 10px 12px; }
+.transport { width: min(100%, 960px); display: grid; grid-template-columns: auto 1fr auto 150px; gap: 12px; align-items: center; background: #101018; border: 1px solid #1d1d28; border-radius: 14px; padding: 10px 12px; }
 .transport.off { opacity: 0.45; }
 .tControls { display: flex; align-items: center; gap: 6px; }
 .tControls button { background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 6px 8px; font-size: 12px; cursor: pointer; }
 .tControls button.play { width: 40px; height: 40px; border-radius: 50%; font-size: 14px; background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
-.tTime { font-size: 12px; color: #8a8aa8; font-variant-numeric: tabular-nums; min-width: 84px; text-align: center; }
+.tTime { font-size: 15px; color: #8a8aa8; font-variant-numeric: tabular-nums; min-width: 110px; text-align: center; }
+.tTime b { color: #fff; font-weight: 700; }
+.tTime .sep { margin: 0 5px; opacity: 0.5; }
+.tLeft { font-size: 12px; color: #8a8aa8; font-variant-numeric: tabular-nums; }
 .tWave { width: 100%; height: 64px; display: block; cursor: pointer; touch-action: none; }
 .tMeter { width: 150px; height: 64px; display: block; }
 @media (max-width: 800px) {
-  .transport { grid-template-columns: 1fr; }
+  .transport { grid-template-columns: 1fr 1fr; }
+  .tWave { grid-column: 1 / -1; }
   .tMeter { width: 100%; }
 }
 

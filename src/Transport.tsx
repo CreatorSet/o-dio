@@ -158,7 +158,7 @@ export function Transport({ audio, eng, peaks, live, playing, enabled, accent, o
           {live ? "■" : playing ? "❚❚" : "▶"}
         </button>
         {!live && <button onClick={() => skip(10)} disabled={!enabled} title="Forward 10 s">10›</button>}
-        <span className="tTime">{live ? <span className="liveDot">● LIVE</span> : `${fmt(time.t)} / ${fmt(time.d)}`}</span>
+        <span className="tTime">{live ? <span className="liveDot">● LIVE</span> : <><b>{fmt(time.t)}</b><span className="sep">/</span>{fmt(time.d)}</>}</span>
       </div>
       <canvas
         ref={waveRef}
@@ -167,6 +167,7 @@ export function Transport({ audio, eng, peaks, live, playing, enabled, accent, o
         onPointerMove={(e) => dragging.current && seekAt(e.clientX)}
         onPointerUp={() => (dragging.current = false)}
       />
+      {!live && time.d > 0 && <span className="tLeft">-{fmt(Math.max(0, time.d - time.t))}</span>}
       <canvas ref={meterRef} className="tMeter" />
     </div>
   );
