@@ -11,6 +11,21 @@ const ASPECTS = [
   { id: "1:1", w: 1080, h: 1080 },
 ] as const;
 
+/** Little glyphs so each style reads at a glance. */
+function StyleIcon({ id }: { id: StyleId }) {
+  const c = "currentColor";
+  switch (id) {
+    case "xp": return <svg viewBox="0 0 40 24"><g fill={c}>{[4,10,16,22,28,34].map((x, i) => <rect key={x} x={x} y={20 - [10,16,8,18,12,6][i]} width="4" height={[10,16,8,18,12,6][i]} rx="1" />)}</g></svg>;
+    case "radial": return <svg viewBox="0 0 40 24"><g stroke={c} strokeWidth="2" fill="none"><circle cx="20" cy="12" r="5" />{Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2, l = 3 + (i % 3) * 2; return <line key={i} x1={20 + Math.cos(a) * 7} y1={12 + Math.sin(a) * 7} x2={20 + Math.cos(a) * (7 + l)} y2={12 + Math.sin(a) * (7 + l)} />; })}</g></svg>;
+    case "wave": return <svg viewBox="0 0 40 24"><path d="M0 12 C4 2 8 22 12 12 S20 2 24 12 S32 22 36 12 40 12 40 12" stroke={c} strokeWidth="2" fill="none" /></svg>;
+    case "orb": return <svg viewBox="0 0 40 24"><circle cx="20" cy="12" r="7" fill={c} /><circle cx="20" cy="12" r="10" stroke={c} strokeWidth="1" fill="none" opacity="0.5" /></svg>;
+    case "bars": return <svg viewBox="0 0 40 24"><g fill={c}>{[2,7,12,17,22,27,32].map((x, i) => <rect key={x} x={x} y={22 - [8,14,20,12,16,6,10][i]} width="4" height={[8,14,20,12,16,6,10][i]} rx="1.5" />)}</g></svg>;
+    case "rings": return <svg viewBox="0 0 40 24"><g stroke={c} fill="none"><circle cx="20" cy="12" r="3" strokeWidth="2" /><circle cx="20" cy="12" r="7" strokeWidth="1.5" opacity="0.7" /><circle cx="20" cy="12" r="11" strokeWidth="1" opacity="0.4" /></g></svg>;
+    case "dots": return <svg viewBox="0 0 40 24"><g fill={c}>{Array.from({ length: 21 }, (_, i) => { const x = 5 + (i % 7) * 5, y = 6 + Math.floor(i / 7) * 6; const on = Math.abs(y - 12) < [6,12,2,8,12,4,8][i % 7]; return <circle key={i} cx={x} cy={y} r="1.6" opacity={on ? 1 : 0.25} />; })}</g></svg>;
+    case "scope": return <svg viewBox="0 0 40 24"><g stroke={c} strokeWidth="0.6" opacity="0.4"><line x1="0" y1="12" x2="40" y2="12" /><line x1="20" y1="0" x2="20" y2="24" /></g><polyline points="0,12 5,12 8,4 11,20 14,8 17,15 20,12 26,12 29,6 32,18 35,12 40,12" stroke={c} strokeWidth="2" fill="none" /></svg>;
+  }
+}
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -136,6 +151,7 @@ export default function App() {
     live?.stream.getTracks().forEach((t) => t.stop());
     engRef.current?.live(null);
     setLive(null);
+    setTrackName(trackFile.current?.name ?? "");
   };
   const listenLive = async () => {
     if (live) { stopLive(); return; }
@@ -287,10 +303,14 @@ export default function App() {
         </section>
 
         <section>
-          <h2>2 · Style</h2>
-          <div className="row">
+          <h2>2 · Visualizer</h2>
+          <p className="hint">Pick how the music looks. Switch any time, even while playing.</p>
+          <div className="tiles">
             {STYLES.map((s) => (
-              <button key={s.id} className={style === s.id ? "on" : ""} onClick={() => setStyle(s.id)}>{s.label}</button>
+              <button key={s.id} className={style === s.id ? "tile on" : "tile"} onClick={() => setStyle(s.id)} title={s.label}>
+                <StyleIcon id={s.id} />
+                <span>{s.label}</span>
+              </button>
             ))}
           </div>
         </section>
