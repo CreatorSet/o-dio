@@ -129,8 +129,10 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.globalAlpha = 1;
       // peak cap: sits on the top, falls slowly
       peaks[i] = Math.max(bh, peaks[i] - maxH * 0.012);
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(x, base - peaks[i] - seg * 0.7, bw, Math.max(2, seg * 0.3));
+      if (peaks[i] > 1) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x, base - peaks[i] - seg * 0.7, bw, Math.max(2, seg * 0.3));
+      }
     }
     // XP Luna strip at the top, the title lives in it
     const lg = ctx.createLinearGradient(0, 0, 0, strip);
