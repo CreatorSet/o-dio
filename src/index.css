@@ -29,6 +29,7 @@ input[type="text"], input:not([type]) { background: #14141c; border: 1px solid #
 .card.on:hover { border-color: #fff; }
 .card.on { border-color: #ff2d95; background: #1f1424; color: #fff; }
 .card input { display: none; }
+.card.dim { opacity: 0.45; }
 .card .ic { font-size: 20px; line-height: 1; color: #ff2d95; margin-bottom: 4px; }
 .card b { font-size: 13px; }
 .card small { font-size: 11px; color: #8a8aa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

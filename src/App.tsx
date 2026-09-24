@@ -93,6 +93,7 @@ export default function App() {
   };
 
   const onTrack = (f: File) => {
+    if (live) stopLive();
     const el = audioRef.current!;
     el.src = URL.createObjectURL(f);
     setTrackName(f.name);
@@ -151,7 +152,6 @@ export default function App() {
     live?.stream.getTracks().forEach((t) => t.stop());
     engRef.current?.live(null);
     setLive(null);
-    setTrackName(trackFile.current?.name ?? "");
   };
   const listenLive = async () => {
     if (live) { stopLive(); return; }
@@ -176,7 +176,6 @@ export default function App() {
     }
     stream.getAudioTracks()[0].addEventListener("ended", stopLive);
     eng.live(stream);
-    setTrackName(`Live: ${kind}`);
     setLive({ stream, kind });
   };
 
@@ -288,16 +287,16 @@ export default function App() {
         <section>
           <h2>1 · Source</h2>
           <div className="cards">
-            <label className={trackName && !live ? "card on" : "card"}>
+            <label className={live ? "card dim" : trackName ? "card on" : "card"}>
               <input type="file" accept="audio/*,video/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
-              <span className="ic">{trackName && !live ? "↻" : "♪"}</span>
-              <b>{trackName && !live ? "Change track" : "Upload a track"}</b>
-              <small>{trackName && !live ? `${trackName} · click to pick another` : "Drop, paste or pick a file"}</small>
+              <span className="ic">{trackName ? "↻" : "♪"}</span>
+              <b>{trackName ? "Change track" : "Upload a track"}</b>
+              <small>{trackName ? trackName : "Drop, paste or pick a file"}</small>
             </label>
             <button className={live ? "card on" : "card"} onClick={listenLive} disabled={exporting !== null}>
-              <span className="ic">{live ? "●" : "◉"}</span>
-              <b>{live ? "Listening" : "Listen live"}</b>
-              <small>{live ? `${live.kind} · tap to stop` : "React to what I'm playing"}</small>
+              <span className="ic">{live ? "■" : "◉"}</span>
+              <b>{live ? "Stop listening" : "Listen live"}</b>
+              <small>{live ? `Hearing ${live.kind}` : "React to what I'm playing"}</small>
             </button>
           </div>
         </section>
@@ -427,7 +426,7 @@ export default function App() {
           peaks={peaks}
           live={live !== null}
           playing={playing}
-          enabled={Boolean(trackName)}
+          enabled={Boolean(trackName) || live !== null}
           accent={PALETTES[paletteIdx].fg[0]}
           onToggle={toggle}
         />
