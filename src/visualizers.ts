@@ -31,6 +31,49 @@ type Particle = { a: number; r: number; v: number; s: number };
 const particles: Particle[] = [];
 const peaks: number[] = [];
 let smoothLevel = 0;
+// life: bass envelope, kick onset, and a field of slow dust that drifts with the level
+let bassEnv = 0, prevBass = 0, kickEnv = 0;
+type Dust = { x: number; y: number; r: number; v: number; a: number; d: number };
+const dust: Dust[] = [];
+
+function alive(ctx: CanvasRenderingContext2D, eng: Engine | null, p: Palette, w: number, h: number, t: number) {
+  const b = eng ? eng.bands(12) : new Float32Array(12);
+  const bass = (b[1] + b[2] + b[3]) / 3;
+  bassEnv += (bass - bassEnv) * 0.25;
+  kickEnv = Math.max(kickEnv * 0.86, Math.max(0, bass - prevBass) * 3);
+  prevBass = bass;
+  const short = Math.min(w, h);
+  // breathing glow behind everything
+  const gx = w / 2 + Math.sin(t * 0.3) * w * 0.08, gy = h * 0.46 + Math.cos(t * 0.23) * h * 0.05;
+  const gr = short * (0.35 + bassEnv * 0.35 + kickEnv * 0.1);
+  const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr);
+  g.addColorStop(0, p.fg[0]);
+  g.addColorStop(0.6, p.fg[1]);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.globalAlpha = 0.12 + bassEnv * 0.28 + kickEnv * 0.15;
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalAlpha = 1;
+  // dust
+  if (dust.length === 0) for (let i = 0; i < 70; i++) dust.push({ x: Math.random(), y: Math.random(), r: 0.5 + Math.random() * 2.2, v: 0.02 + Math.random() * 0.06, a: 0.15 + Math.random() * 0.35, d: Math.random() * Math.PI * 2 });
+  ctx.fillStyle = p.fg[2];
+  for (const q of dust) {
+    q.y -= (q.v * (0.4 + smoothLevel * 2.5)) / 60;
+    q.x += Math.sin(t * 0.5 + q.d) * 0.0004;
+    if (q.y < -0.02) { q.y = 1.02; q.x = Math.random(); }
+    ctx.globalAlpha = q.a * (0.5 + smoothLevel);
+    ctx.beginPath();
+    ctx.arc(q.x * w, q.y * h, q.r * (short / 900) * (1 + kickEnv), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // kick: the whole scene leans in
+  const z = 1 + kickEnv * 0.035 + bassEnv * 0.01;
+  ctx.translate(w / 2, h / 2);
+  ctx.scale(z, z);
+  ctx.rotate(Math.sin(t * 0.4) * 0.004);
+  ctx.translate(-w / 2, -h / 2);
+}
 
 function gradient(ctx: CanvasRenderingContext2D, w: number, h: number, p: Palette) {
   const g = ctx.createLinearGradient(0, 0, 0, h);
@@ -82,11 +125,14 @@ function text(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: number,
 
 export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: Scene, w: number, h: number, t: number) {
   const p = scene.palette;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   gradient(ctx, w, h, p);
   const lvl = eng ? eng.level() : 0;
   smoothLevel += (lvl - smoothLevel) * 0.2;
   const cx = w / 2;
   const short = Math.min(w, h);
+  if (scene.style !== "xp") alive(ctx, eng, p, w, h, t);
+  else { bassEnv = 0; kickEnv = 0; }
 
   if (scene.style === "xp") {
     // Windows Media Player "Bars", 2003: segmented spectrum, falling peak caps, a reflection.
@@ -162,13 +208,15 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     const n = 96;
     const b = eng ? eng.bands(n) : new Float32Array(n);
     const cy = h * 0.46;
-    const r0 = short * 0.19 * (1 + smoothLevel * 0.08);
+    const r0 = short * 0.19 * (1 + bassEnv * 0.16 + kickEnv * 0.08);
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(t * 0.05);
     ctx.strokeStyle = fgGradient(ctx, -short / 2, 0, short / 2, 0, p);
     ctx.lineWidth = Math.max(2, (2 * Math.PI * r0) / n * 0.55);
     ctx.lineCap = "round";
+    ctx.shadowColor = p.fg[0];
+    ctx.shadowBlur = short * (0.01 + kickEnv * 0.03);
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
       const len = r0 * 0.12 + Math.pow(b[i], 1.3) * short * 0.22;
@@ -177,6 +225,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.lineTo(Math.cos(a) * (r0 + len), Math.sin(a) * (r0 + len));
       ctx.stroke();
     }
+    ctx.shadowBlur = 0;
     ctx.restore();
     if (scene.cover) {
       ctx.save();
@@ -212,11 +261,14 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
         i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
       }
       ctx.strokeStyle = p.fg[layer % p.fg.length];
+      ctx.shadowColor = p.fg[layer % p.fg.length];
+      ctx.shadowBlur = layer === 0 ? short * (0.012 + kickEnv * 0.03) : 0;
       ctx.lineWidth = Math.max(2, short * (0.012 - layer * 0.003));
       ctx.lineCap = "round";
       ctx.globalAlpha = 1 - layer * 0.3;
       ctx.stroke();
     }
+    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     if (scene.cover) {
       const s = short * 0.3;
@@ -227,7 +279,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
 
   if (scene.style === "orb") {
     const cy = h * 0.46;
-    const r = short * 0.2 * (1 + smoothLevel * 0.35);
+    const r = short * 0.2 * (1 + bassEnv * 0.45 + kickEnv * 0.15);
     const g = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 1.6);
     g.addColorStop(0, p.fg[0]);
     g.addColorStop(0.5, p.fg[1]);
