@@ -6,7 +6,8 @@ Open-source music visualizer. Drop a track, pick a look, export a video. Runs en
 
 ## What it does
 
-- Reads any audio file the browser can play (mp3, wav, m4a, ogg, flac)
+- Reads any audio file the browser can play (mp3, wav, m4a, ogg, flac): choose, drop, or paste it (a file or a direct link)
+- **Listen live**: reacts to whatever you're playing. Chrome shares a tab or screen's audio; other browsers use the mic. Record the result as long as you like
 - Four looks: Bars, Radial, Wave, Orb
 - Five palettes, cover art, title and artist text
 - 9:16, 1:1 and 16:9 canvases at 1080p

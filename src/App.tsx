@@ -25,6 +25,8 @@ export default function App() {
   const [watermark, setWatermark] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [exporting, setExporting] = useState<null | number>(null);
+  const [live, setLive] = useState<{ stream: MediaStream; kind: string } | null>(null);
+  const liveRec = useRef<{ stop: () => void } | null>(null);
   const [progress, setProgress] = useState(0);
 
   sceneRef.current = { style, palette: PALETTES[paletteIdx], title, artist, cover, watermark };
@@ -82,6 +84,55 @@ export default function App() {
     ensureEngine();
     if (el.paused) el.play().then(() => setPlaying(true));
     else { el.pause(); setPlaying(false); }
+  };
+
+  // Listen to whatever the user is playing: a tab / screen share with audio (Chrome), else the mic
+  // (which also catches speakers or a loopback device like BlackHole). Stops when the share ends.
+  const stopLive = () => {
+    live?.stream.getTracks().forEach((t) => t.stop());
+    engRef.current?.live(null);
+    setLive(null);
+  };
+  const listenLive = async () => {
+    if (live) { stopLive(); return; }
+    const eng = ensureEngine();
+    audioRef.current?.pause();
+    let stream: MediaStream | null = null;
+    let kind = "";
+    try {
+      const md = navigator.mediaDevices as MediaDevices & { getDisplayMedia?: (c: unknown) => Promise<MediaStream> };
+      if (md.getDisplayMedia) {
+        const s = await md.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+        s.getVideoTracks().forEach((t) => t.stop());
+        if (s.getAudioTracks().length) { stream = new MediaStream(s.getAudioTracks()); kind = "tab / screen audio"; }
+        else s.getTracks().forEach((t) => t.stop());
+      }
+    } catch { /* user cancelled or unsupported: fall through to the mic */ }
+    if (!stream) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+        kind = "microphone";
+      } catch { return; }
+    }
+    stream.getAudioTracks()[0].addEventListener("ended", stopLive);
+    eng.live(stream);
+    setTrackName(`Live: ${kind}`);
+    setLive({ stream, kind });
+  };
+
+  const recordLive = async () => {
+    if (!live) return;
+    if (liveRec.current) { liveRec.current.stop(); return; }
+    const eng = ensureEngine();
+    const t0 = Date.now();
+    const { rec, done, ext } = startRecording(canvasRef.current!, eng.stream, 60);
+    const iv = setInterval(() => setExporting((Date.now() - t0) / 1000), 500);
+    setExporting(0);
+    liveRec.current = { stop: () => { clearInterval(iv); rec.stop(); } };
+    const blob = await done;
+    liveRec.current = null;
+    setExporting(null);
+    download(blob, `${(title || "live").replace(/[^\w\- ]+/g, "")}.${ext}`);
   };
 
   const exportVideo = async () => {
@@ -185,11 +236,22 @@ export default function App() {
           <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with O Dio" tag
         </label>
 
+        <button className={live ? "live on" : "live"} onClick={listenLive} disabled={exporting !== null}>
+          {live ? `● Listening: ${live.kind} (stop)` : "Listen live: react to what I'm playing"}
+        </button>
         <div className="row actions">
-          <button onClick={toggle} disabled={!trackName || exporting !== null}>{playing ? "Pause" : "Play"}</button>
-          <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
-            {exporting === null ? "Export video" : `Recording ${Math.round(exporting * 100)}%`}
-          </button>
+          {live ? (
+            <button className="primary" onClick={recordLive}>
+              {exporting === null ? "Start recording" : `Stop recording · ${Math.floor(exporting / 60)}:${String(Math.floor(exporting % 60)).padStart(2, "0")}`}
+            </button>
+          ) : (
+            <>
+              <button onClick={toggle} disabled={!trackName || exporting !== null}>{playing ? "Pause" : "Play"}</button>
+              <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
+                {exporting === null ? "Export video" : `Recording ${Math.round(exporting * 100)}%`}
+              </button>
+            </>
+          )}
         </div>
         <div className="bar"><div style={{ width: `${progress * 100}%` }} /></div>
         <p className="hint">Export records in real time, so it takes as long as the song. Keep this tab in front.</p>

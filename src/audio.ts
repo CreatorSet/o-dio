@@ -7,6 +7,8 @@ export type Engine = {
   wave: Uint8Array;
   /** Audio track for export; the graph also plays to the speakers. */
   stream: MediaStream;
+  /** Feed a live stream (tab / system / mic) into the analyser instead of the element. null = back to the element. */
+  live: (stream: MediaStream | null) => void;
   bands: (count: number) => Float32Array;
   waveform: (points: number) => Float32Array;
   level: () => number;
@@ -21,9 +23,24 @@ export function createEngine(el: HTMLAudioElement): Engine {
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.8;
   const dest = ctx.createMediaStreamDestination();
+  // monitor gain: the element is heard through it; a live tab/mic feed is muted here (it is
+  // already audible, or it would feed back) but still reaches the analyser and the recorder.
+  const monitor = ctx.createGain();
   src.connect(analyser);
-  analyser.connect(ctx.destination);
+  analyser.connect(monitor);
+  monitor.connect(ctx.destination);
   analyser.connect(dest);
+  let liveSrc: MediaStreamAudioSourceNode | null = null;
+  const live = (stream: MediaStream | null) => {
+    if (liveSrc) { liveSrc.disconnect(); liveSrc = null; }
+    if (stream) {
+      liveSrc = ctx.createMediaStreamSource(stream);
+      liveSrc.connect(analyser);
+      monitor.gain.value = 0;
+    } else {
+      monitor.gain.value = 1;
+    }
+  };
   const freq = new Uint8Array(analyser.frequencyBinCount);
   const wave = new Uint8Array(analyser.fftSize);
   const sr = ctx.sampleRate;
@@ -67,5 +84,5 @@ export function createEngine(el: HTMLAudioElement): Engine {
     return s / n / 255;
   };
 
-  return { ctx, el, analyser, freq, wave, stream: dest.stream, bands, waveform, level };
+  return { ctx, el, analyser, freq, wave, stream: dest.stream, live, bands, waveform, level };
 }

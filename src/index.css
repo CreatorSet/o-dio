@@ -20,6 +20,9 @@ input[type="text"], input:not([type]) { background: #14141c; border: 1px solid #
 .row button.swatch { flex: 0 0 34px; height: 34px; border-radius: 50%; padding: 0; }
 .row button.swatch.on { outline: 2px solid #fff; outline-offset: 2px; }
 .row.actions button { padding: 11px; font-weight: 600; }
+.live { background: #14141c; border: 1px dashed #3a3a4d; color: #c9c9d9; border-radius: 10px; padding: 10px 12px; font-size: 13px; cursor: pointer; text-align: left; }
+.live:hover { border-color: #2dfcff; }
+.live.on { border-style: solid; border-color: #ff2d95; color: #fff; background: #1f1424; }
 .row.actions .primary { background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
 button:disabled { opacity: 0.4; cursor: default; }
 .check { font-size: 13px; color: #c9c9d9; display: flex; align-items: center; gap: 8px; }
