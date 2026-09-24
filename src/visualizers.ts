@@ -40,6 +40,8 @@ export type Scene = {
   /** Post effects: zoom-echo trails behind the visualizer, film grain + vignette on top. */
   trails: boolean;
   grain: boolean;
+  /** Kick impact: camera shake, RGB-split ghosting, harder lean-in. */
+  bumpy: boolean;
   /** Playback position in seconds, set by the app each frame. */
   time: number;
 };
@@ -134,7 +136,7 @@ function alive(ctx: CanvasRenderingContext2D, eng: Engine | null, p: Palette, w:
   }
   ctx.globalAlpha = 1;
   // kick: the whole scene leans in
-  const z = 1 + kickEnv * 0.035 + bassEnv * 0.01;
+  const z = 1 + kickEnv * 0.045 + bassEnv * 0.012;
   ctx.translate(w / 2, h / 2);
   ctx.scale(z, z);
   ctx.rotate(Math.sin(t * 0.4) * 0.004);
@@ -647,7 +649,27 @@ export function draw(out: CanvasRenderingContext2D, eng: Engine | null, scene: S
 
   // composite the layer, then the finish: kick flash, vignette, grain, and the words on top
   out.setTransform(1, 0, 0, 1, 0, 0);
+  const bump = scene.bumpy && scene.style !== "xp" ? kickEnv : 0;
+  if (bump > 0.12) {
+    // camera shake + a hair of zoom, the whole frame jolts with the kick
+    const amt = (bump - 0.12) * short * 0.02;
+    out.translate(w / 2 + (Math.random() - 0.5) * amt, h / 2 + (Math.random() - 0.5) * amt);
+    const z = 1 + (bump - 0.12) * 0.05;
+    out.scale(z, z);
+    out.translate(-w / 2, -h / 2);
+  }
   out.drawImage(L, 0, 0);
+  if (bump > 0.3) {
+    // RGB-split ghost: two screened copies pushed left/right
+    const off = (bump - 0.3) * short * 0.02;
+    out.globalCompositeOperation = "screen";
+    out.globalAlpha = Math.min(0.5, (bump - 0.3) * 1.2);
+    out.drawImage(L, -off, 0);
+    out.drawImage(L, off, 0);
+    out.globalAlpha = 1;
+    out.globalCompositeOperation = "source-over";
+  }
+  out.setTransform(1, 0, 0, 1, 0, 0);
   if (scene.style !== "xp") {
     if (kickEnv > 0.25) {
       out.globalAlpha = Math.min(0.18, (kickEnv - 0.25) * 0.5);
