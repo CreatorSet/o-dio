@@ -41,9 +41,22 @@ button:disabled { opacity: 0.4; cursor: default; }
 .bar div { height: 100%; background: linear-gradient(90deg, #ff2d95, #2dfcff); transition: width 0.2s linear; }
 .hint { font-size: 12px; color: #6f6f88; margin: 0; }
 .gh { margin-top: auto; font-size: 12px; color: #6f6f88; text-decoration: none; }
-.stage { display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse at top, #12121c, #08080c); }
-.stage canvas { max-height: calc(100vh - 48px); max-width: 100%; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+.stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; min-height: 0; background: radial-gradient(ellipse at top, #12121c, #08080c); }
+.stage > canvas { max-height: calc(100vh - 48px - 110px); min-height: 0; max-width: 100%; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
 @media (max-width: 800px) {
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
   .panel { border-right: none; border-bottom: 1px solid #1d1d28; }
+}
+
+.transport { width: min(100%, 960px); display: grid; grid-template-columns: auto 1fr 150px; gap: 12px; align-items: center; background: #101018; border: 1px solid #1d1d28; border-radius: 14px; padding: 10px 12px; }
+.transport.off { opacity: 0.45; }
+.tControls { display: flex; align-items: center; gap: 6px; }
+.tControls button { background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 6px 8px; font-size: 12px; cursor: pointer; }
+.tControls button.play { width: 40px; height: 40px; border-radius: 50%; font-size: 14px; background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
+.tTime { font-size: 12px; color: #8a8aa8; font-variant-numeric: tabular-nums; min-width: 84px; text-align: center; }
+.tWave { width: 100%; height: 64px; display: block; cursor: pointer; touch-action: none; }
+.tMeter { width: 150px; height: 64px; display: block; }
+@media (max-width: 800px) {
+  .transport { grid-template-columns: 1fr; }
+  .tMeter { width: 100%; }
 }

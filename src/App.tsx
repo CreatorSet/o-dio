@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createEngine, type Engine } from "./audio";
 import { draw, PALETTES, STYLES, type Scene, type StyleId } from "./visualizers";
 import { download, startRecording } from "./export";
+import { computePeaks, Transport, type Peaks } from "./Transport";
 
 const ASPECTS = [
   { id: "16:9", w: 1920, h: 1080 },
@@ -28,6 +29,7 @@ export default function App() {
   const [live, setLive] = useState<{ stream: MediaStream; kind: string } | null>(null);
   const liveRec = useRef<{ stop: () => void } | null>(null);
   const [progress, setProgress] = useState(0);
+  const [peaks, setPeaks] = useState<Peaks | null>(null);
 
   sceneRef.current = { style, palette: PALETTES[paletteIdx], title, artist, cover, watermark };
 
@@ -67,6 +69,8 @@ export default function App() {
     const el = audioRef.current!;
     el.src = URL.createObjectURL(f);
     setTrackName(f.name);
+    setPeaks(null);
+    computePeaks(f).then(setPeaks).catch(() => setPeaks(null));
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, "").replace(/\s*\(\d+\)\s*$/, "").replace(/(mp3|wav|m4a|flac)$/i, "").replace(/[_-]+/g, " ").trim());
     ensureEngine();
     el.play().then(() => setPlaying(true)).catch(() => undefined);
@@ -271,7 +275,6 @@ export default function App() {
               </button>
             ) : (
               <>
-                <button onClick={toggle} disabled={!trackName || exporting !== null}>{playing ? "Pause" : "Play"}</button>
                 <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
                   {exporting === null ? "Export video" : `Recording ${Math.round(exporting * 100)}%`}
                 </button>
@@ -286,6 +289,16 @@ export default function App() {
 
       <main className="stage">
         <canvas ref={canvasRef} width={aspect.w} height={aspect.h} style={{ aspectRatio: `${aspect.w} / ${aspect.h}` }} />
+        <Transport
+          audio={audioRef}
+          eng={engRef}
+          peaks={peaks}
+          live={live !== null}
+          playing={playing}
+          enabled={Boolean(trackName)}
+          accent={PALETTES[paletteIdx].fg[0]}
+          onToggle={toggle}
+        />
       </main>
       <audio ref={audioRef} crossOrigin="anonymous" />
     </div>
