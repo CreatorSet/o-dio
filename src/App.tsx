@@ -120,13 +120,25 @@ export default function App() {
   const generateBackground = async () => {
     const prompt = bgPrompt.trim();
     if (prompt.length < 3 || bgJob) return;
-    setBgJob("Painting with Nano Banana… ~20 s");
+    setBgJob("Painting with Nano Banana…");
     try {
-      const r = await fetch(BG_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspect: aspect.id }) });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+      const start = await fetch(BG_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspect: aspect.id }) });
+      const sj = await start.json().catch(() => ({}));
+      if (!start.ok || !sj.taskId) throw new Error(sj.detail || `HTTP ${start.status}`);
+      const t0 = Date.now();
+      let dataUrl = "";
+      while (Date.now() - t0 < 5 * 60_000) {
+        await new Promise((r) => setTimeout(r, 3000));
+        setBgJob(`Painting with Nano Banana… ${Math.round((Date.now() - t0) / 1000)} s`);
+        const poll = await fetch(`${BG_API}?taskId=${encodeURIComponent(sj.taskId)}`);
+        const pj = await poll.json().catch(() => ({}));
+        if (!poll.ok) throw new Error(pj.detail || `HTTP ${poll.status}`);
+        if (pj.state === "fail") throw new Error(pj.detail || "generation failed");
+        if (pj.state === "success") { dataUrl = pj.dataUrl; break; }
+      }
+      if (!dataUrl) throw new Error("took too long, try again");
       const img = new Image();
-      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error("bad image")); img.src = j.dataUrl; });
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error("bad image")); img.src = dataUrl; });
       setBackground(img);
       setBgJob(null);
     } catch (e) {

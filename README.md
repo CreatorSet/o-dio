@@ -38,4 +38,4 @@ MIT. Made by [CreatorSet](https://creatorset.com).
 
 ## AI background
 
-"Generate" in the Color section posts `{ prompt, aspect }` to a small endpoint that runs Nano Banana 2 and returns `{ dataUrl }`. The default endpoint is CreatorSet's (`https://creatorset.com/api/odio/background`, 12 per hour per IP). Self-hosting? Set `VITE_BG_API` at build time to your own; the reference implementation is `src/pages/api/odio/background.ts` in the CreatorSet shop.
+"Generate" in the Color section posts `{ prompt, aspect }` to a small endpoint that starts a Nano Banana 2 task and returns `{ taskId }`; the app then polls `GET ?taskId=` until it gets `{ state: "success", dataUrl }`. The default endpoint is CreatorSet's (`https://creatorset.com/api/odio/background`, 12 per hour per IP). Self-hosting? Set `VITE_BG_API` at build time to your own; the reference implementation is `src/pages/api/odio/background.ts` in the CreatorSet shop.
