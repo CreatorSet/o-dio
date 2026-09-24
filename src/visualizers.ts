@@ -10,9 +10,9 @@ export const PALETTES: Palette[] = [
   { name: "Gold", bg: ["#0d0a02", "#2a1e06"], fg: ["#ffd700", "#ff9d00", "#fff2b0"], text: "#fff8dc" },
 ];
 
-export type StyleId = "bars" | "radial" | "wave" | "orb";
+export type StyleId = "xp" | "radial" | "wave" | "orb";
 export const STYLES: { id: StyleId; label: string }[] = [
-  { id: "bars", label: "Bars" },
+  { id: "xp", label: "XP" },
   { id: "radial", label: "Radial" },
   { id: "wave", label: "Wave" },
   { id: "orb", label: "Orb" },
@@ -29,6 +29,7 @@ export type Scene = {
 
 type Particle = { a: number; r: number; v: number; s: number };
 const particles: Particle[] = [];
+const peaks: number[] = [];
 let smoothLevel = 0;
 
 function gradient(ctx: CanvasRenderingContext2D, w: number, h: number, p: Palette) {
@@ -87,24 +88,69 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
   const cx = w / 2;
   const short = Math.min(w, h);
 
-  if (scene.style === "bars") {
-    const n = 48;
+  if (scene.style === "xp") {
+    // Windows Media Player "Bars", 2003: segmented spectrum, falling peak caps, a reflection.
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, h);
+    const n = 40;
     const b = eng ? eng.bands(n) : new Float32Array(n);
-    const gap = w * 0.006, bw = (w - gap * (n + 1)) / n;
-    const base = h * 0.78, maxH = h * 0.42;
-    ctx.fillStyle = fgGradient(ctx, 0, base - maxH, 0, base, p);
+    if (peaks.length !== n) { peaks.length = 0; for (let i = 0; i < n; i++) peaks.push(0); }
+    const margin = w * 0.06;
+    const gap = w * 0.008, bw = (w - margin * 2 - gap * (n - 1)) / n;
+    const base = h * 0.72, maxH = h * 0.4;
+    const seg = Math.max(4, Math.round(maxH / 28)), segGap = Math.max(1, seg * 0.28);
+    const g = ctx.createLinearGradient(0, base, 0, base - maxH);
+    g.addColorStop(0, "#19c41a");
+    g.addColorStop(0.55, "#d6e01c");
+    g.addColorStop(0.8, "#ff8a00");
+    g.addColorStop(1, "#ff1e1e");
     for (let i = 0; i < n; i++) {
-      const v = Math.pow(b[i], 1.4);
-      const bh = Math.max(bw * 0.5, v * maxH);
-      ctx.beginPath();
-      ctx.roundRect(gap + i * (bw + gap), base - bh, bw, bh, bw / 2);
-      ctx.fill();
+      const v = Math.pow(b[i], 1.35);
+      const bh = v * maxH;
+      const x = margin + i * (bw + gap);
+      ctx.fillStyle = g;
+      for (let y = 0; y < bh; y += seg) {
+        const sh = Math.min(seg - segGap, bh - y);
+        ctx.fillRect(x, base - y - sh, bw, sh);
+      }
+      // reflection
+      ctx.globalAlpha = 0.18;
+      for (let y = 0; y < bh * 0.5; y += seg) {
+        const sh = Math.min(seg - segGap, bh * 0.5 - y);
+        ctx.fillRect(x, base + y + segGap * 2, bw, sh);
+      }
+      ctx.globalAlpha = 1;
+      // peak cap: sits on the top, falls slowly
+      peaks[i] = Math.max(bh, peaks[i] - maxH * 0.012);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x, base - peaks[i] - seg * 0.7, bw, Math.max(2, seg * 0.3));
     }
+    // XP Luna strip at the top, the title lives in it
+    const strip = h * 0.05;
+    const lg = ctx.createLinearGradient(0, 0, 0, strip);
+    lg.addColorStop(0, "#3d95ff");
+    lg.addColorStop(0.5, "#0a5fd6");
+    lg.addColorStop(1, "#063f9e");
+    ctx.fillStyle = lg;
+    ctx.fillRect(0, 0, w, strip);
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "left";
+    ctx.font = `700 ${Math.round(strip * 0.5)}px Tahoma, Verdana, system-ui, sans-serif`;
+    ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
+    ctx.fillText(`${scene.title || "O Dio"}${scene.artist ? " - " + scene.artist : ""} - Windows Media Player`, strip * 0.4, strip * 0.66);
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     if (scene.cover) {
-      const s = short * 0.34;
-      roundedImage(ctx, scene.cover, cx - s / 2, base - maxH - s - h * 0.05, s, s * 0.08);
+      const s = short * 0.3;
+      roundedImage(ctx, scene.cover, cx - s / 2, base - maxH - s - h * 0.05, s, 6);
     }
-    text(ctx, scene, w, h, base + h * 0.07);
+    if (scene.watermark) {
+      ctx.globalAlpha = 0.5;
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#fff";
+      ctx.font = `600 ${Math.round(w * 0.022)}px Tahoma, Verdana, system-ui, sans-serif`;
+      ctx.fillText("made with O Dio", w - w * 0.03, h - w * 0.03);
+      ctx.globalAlpha = 1;
+    }
   }
 
   if (scene.style === "radial") {
