@@ -24,6 +24,9 @@ export type Scene = {
   title: string;
   artist: string;
   cover: HTMLImageElement | null;
+  /** Optional photo behind everything, drawn cover-fit and dimmed by `bgDim` (0..1). */
+  background: HTMLImageElement | null;
+  bgDim: number;
   watermark: boolean;
 };
 
@@ -83,6 +86,17 @@ function gradient(ctx: CanvasRenderingContext2D, w: number, h: number, p: Palett
   ctx.fillRect(0, 0, w, h);
 }
 
+/** Cover-fit photo behind the scene, dimmed so the visualizer still reads. */
+function backdrop(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: number) {
+  const img = scene.background;
+  if (!img) return;
+  const ar = img.width / img.height, car = w / h;
+  const dw = ar > car ? h * ar : w, dh = ar > car ? h : w / ar;
+  ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  ctx.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, scene.bgDim))})`;
+  ctx.fillRect(0, 0, w, h);
+}
+
 function fgGradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, p: Palette) {
   const g = ctx.createLinearGradient(x0, y0, x1, y1);
   p.fg.forEach((c, i) => g.addColorStop(i / (p.fg.length - 1), c));
@@ -118,7 +132,7 @@ function text(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: number,
     ctx.globalAlpha = 0.5;
     ctx.textAlign = "right";
     ctx.font = `600 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
-    ctx.fillText("made with O'dio", w - w * 0.03, h - w * 0.03);
+    ctx.fillText("made with CreatorSet.ai", w - w * 0.03, h - w * 0.03);
     ctx.globalAlpha = 1;
   }
 }
@@ -127,6 +141,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
   const p = scene.palette;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   gradient(ctx, w, h, p);
+  backdrop(ctx, scene, w, h);
   const lvl = eng ? eng.level() : 0;
   smoothLevel += (lvl - smoothLevel) * 0.2;
   const cx = w / 2;
@@ -138,6 +153,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     // Windows Media Player "Bars", 2003: segmented spectrum, falling peak caps, a reflection.
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, w, h);
+    backdrop(ctx, scene, w, h);
     const n = 40;
     const b = eng ? eng.bands(n) : new Float32Array(n);
     if (peaks.length !== n) { peaks.length = 0; for (let i = 0; i < n; i++) peaks.push(0); }
@@ -191,7 +207,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     ctx.textAlign = "left";
     ctx.font = `700 ${Math.round(strip * 0.5)}px Tahoma, Verdana, system-ui, sans-serif`;
     ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
-    ctx.fillText(`${scene.title || "O'dio"}${scene.artist ? " - " + scene.artist : ""} - Windows Media Player`, strip * 0.4, strip * 0.66);
+    ctx.fillText(`${scene.title || "CreatorSet.ai"}${scene.artist ? " - " + scene.artist : ""} - Windows Media Player`, strip * 0.4, strip * 0.66);
     ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     if (scene.cover) roundedImage(ctx, scene.cover, cx - coverS / 2, coverY, coverS, 6);
     if (scene.watermark) {
@@ -199,7 +215,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.textAlign = "right";
       ctx.fillStyle = "#fff";
       ctx.font = `600 ${Math.round(w * 0.022)}px Tahoma, Verdana, system-ui, sans-serif`;
-      ctx.fillText("made with O'dio", w - w * 0.03, h - w * 0.03);
+      ctx.fillText("made with CreatorSet.ai", w - w * 0.03, h - w * 0.03);
       ctx.globalAlpha = 1;
     }
   }
