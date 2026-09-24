@@ -329,18 +329,13 @@ export default function App() {
 
         <section>
           <h2>1 · Source</h2>
-          <div className="cards">
+          <div className="cards one">
             <label className={live ? "card dim" : trackName ? "card on" : "card"}>
               <input type="file" accept="audio/*,video/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
               <span className="ic">{trackName ? "↻" : "♪"}</span>
               <b>{trackName ? "Change track" : "Upload a track"}</b>
               <small>{trackName ? trackName : "Drop, paste or pick a file"}</small>
             </label>
-            <button className={live ? "card on" : "card"} onClick={listenLive} disabled={exporting !== null}>
-              <span className="ic">{live ? "■" : "◉"}</span>
-              <b>{live ? "Stop listening" : "Listen live"}</b>
-              <small>{live ? `Hearing ${live.kind}` : "React to what I'm playing"}</small>
-            </button>
           </div>
         </section>
 
@@ -472,7 +467,12 @@ export default function App() {
       </aside>
 
       <main className="stage">
+        <div className="stageWrap">
+        <button className={live ? "liveBtn on" : "liveBtn"} onClick={listenLive} disabled={exporting !== null} title={live ? `Listening to ${live.kind} · click to stop` : "Listen live: react to what I'm playing"}>
+          <span className="dot" />{live ? "LIVE" : "Listen live"}
+        </button>
         <canvas ref={canvasRef} width={aspect.w} height={aspect.h} style={{ aspectRatio: `${aspect.w} / ${aspect.h}` }} onClick={() => coverInput.current?.click()} title="Click to set the center image" />
+        </div>
         <Transport
           audio={audioRef}
           eng={engRef}
