@@ -87,3 +87,5 @@ button:disabled { opacity: 0.4; cursor: default; }
 .gen { display: flex; gap: 6px; }
 .gen input { flex: 1; min-width: 0; }
 .gen .primary { background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+.row.fx { gap: 14px; margin-top: 2px; }

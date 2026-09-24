@@ -33,7 +33,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const engRef = useRef<Engine | null>(null);
-  const sceneRef = useRef<Scene>({ style: "radial", palette: PALETTES[0], title: "", artist: "", cover: null, artistPhoto: null, background: null, bgDim: 0.55, watermark: true, captions: null, captionStyle: "off", time: 0 });
+  const sceneRef = useRef<Scene>({ style: "radial", palette: PALETTES[0], title: "", artist: "", cover: null, artistPhoto: null, background: null, bgDim: 0.55, watermark: true, captions: null, captionStyle: "off", trails: true, grain: true, time: 0 });
 
   const [trackName, setTrackName] = useState("");
   const [style, setStyle] = useState<StyleId>("radial");
@@ -56,6 +56,8 @@ export default function App() {
   const [captions, setCaptions] = useState<Transcribe | null>(null);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>("karaoke");
   const [captionJob, setCaptionJob] = useState<string | null>(null);
+  const [trails, setTrails] = useState(true);
+  const [grain, setGrain] = useState(true);
   const trackFile = useRef<File | null>(null);
   const [live, setLive] = useState<{ stream: MediaStream; kind: string } | null>(null);
   const liveRec = useRef<{ stop: () => void } | null>(null);
@@ -63,7 +65,7 @@ export default function App() {
   const [peaks, setPeaks] = useState<Peaks | null>(null);
 
   const palette = paletteIdx === -1 ? custom : PALETTES[paletteIdx];
-  sceneRef.current = { style, palette, title, artist, cover, artistPhoto, background, bgDim, watermark, captions, captionStyle, time: sceneRef.current.time };
+  sceneRef.current = { style, palette, title, artist, cover, artistPhoto, background, bgDim, watermark, captions, captionStyle, trails, grain, time: sceneRef.current.time };
 
   // keep the Play/Pause button honest whatever the element does (autoplay refusals, end of track)
   useEffect(() => {
@@ -351,6 +353,10 @@ export default function App() {
                 <span>{s.label}</span>
               </button>
             ))}
+          </div>
+          <div className="row fx">
+            <label className="check"><input type="checkbox" checked={trails} onChange={(e) => setTrails(e.target.checked)} /> Trails</label>
+            <label className="check"><input type="checkbox" checked={grain} onChange={(e) => setGrain(e.target.checked)} /> Film grain</label>
           </div>
         </section>
 

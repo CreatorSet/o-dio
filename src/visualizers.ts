@@ -37,6 +37,9 @@ export type Scene = {
   watermark: boolean;
   captions: Transcribe | null;
   captionStyle: CaptionStyle;
+  /** Post effects: zoom-echo trails behind the visualizer, film grain + vignette on top. */
+  trails: boolean;
+  grain: boolean;
   /** Playback position in seconds, set by the app each frame. */
   time: number;
 };
@@ -59,6 +62,45 @@ function smoothBands(eng: Engine | null, n: number, attack = 0.5, release = 0.08
   return e;
 }
 const ringHist: Float32Array[] = [];
+
+// Feedback layer: the visualizer draws here; each frame the previous content is faded and
+// zoomed a touch before the new frame lands on top, which is what gives the echo trails.
+let layer: HTMLCanvasElement | null = null;
+function layerFor(w: number, h: number) {
+  if (!layer || layer.width !== w || layer.height !== h) {
+    layer = document.createElement("canvas");
+    layer.width = w; layer.height = h;
+  }
+  return layer;
+}
+let grainTile: HTMLCanvasElement | null = null;
+function grainFor() {
+  if (grainTile) return grainTile;
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 256;
+  const x = c.getContext("2d")!;
+  const id = x.createImageData(256, 256);
+  for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (Math.random() - 0.5) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+  x.putImageData(id, 0, 0);
+  grainTile = c;
+  return c;
+}
+// waveform smoothed across frames so Wave / Scope flow instead of jitter
+const waveSmooth = new Map<number, Float32Array>();
+function smoothWave(eng: Engine | null, pts: number, k = 0.45) {
+  const raw = eng ? eng.waveform(pts) : new Float32Array(pts);
+  let e = waveSmooth.get(pts);
+  if (!e) { e = new Float32Array(pts); waveSmooth.set(pts, e); }
+  for (let i = 0; i < pts; i++) e[i] += (raw[i] - e[i]) * k;
+  return e;
+}
+/** Smooth polyline through points via quadratic midpoints. */
+function spline(ctx: CanvasRenderingContext2D, xs: ArrayLike<number>, ys: ArrayLike<number>, n: number) {
+  ctx.moveTo(xs[0], ys[0]);
+  for (let i = 1; i < n - 1; i++) ctx.quadraticCurveTo(xs[i], ys[i], (xs[i] + xs[i + 1]) / 2, (ys[i] + ys[i + 1]) / 2);
+  ctx.lineTo(xs[n - 1], ys[n - 1]);
+}
+const sx = new Float32Array(1024), sy = new Float32Array(1024);
 
 function alive(ctx: CanvasRenderingContext2D, eng: Engine | null, p: Palette, w: number, h: number, t: number) {
   const b = eng ? eng.bands(12) : new Float32Array(12);
@@ -116,6 +158,64 @@ function backdrop(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: num
   ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
   ctx.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, scene.bgDim))})`;
   ctx.fillRect(0, 0, w, h);
+}
+
+// The record in the middle of Radial: spins at 33⅓ rpm-ish, faster on a kick. With a photo the
+// photo is the label; without one it is a vinyl with grooves and a coloured label.
+let spin = 0;
+function vinyl(ctx: CanvasRenderingContext2D, scene: Scene, cx: number, cy: number, r: number, p: Palette) {
+  spin += (0.35 + smoothLevel * 1.2 + kickEnv * 2) / 60;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(spin);
+  // disc
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#0b0b0e";
+  ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = r * 0.15;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // grooves
+  ctx.lineWidth = Math.max(1, r * 0.006);
+  for (let g = r * 0.42; g < r * 0.97; g += r * 0.032) {
+    ctx.beginPath(); ctx.arc(0, 0, g, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${0.05 + 0.05 * Math.sin(g * 40)})`;
+    ctx.stroke();
+  }
+  // light sweep across the grooves (does not rotate with the disc)
+  ctx.rotate(-spin);
+  const sweep = ctx.createLinearGradient(-r, -r, r, r);
+  sweep.addColorStop(0.35, "rgba(255,255,255,0)");
+  sweep.addColorStop(0.5, "rgba(255,255,255,0.10)");
+  sweep.addColorStop(0.65, "rgba(255,255,255,0)");
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = sweep; ctx.fill();
+  ctx.rotate(spin);
+  // label: the photo, or a coloured label
+  const lr = scene.cover ? r * 0.72 : r * 0.38;
+  ctx.beginPath(); ctx.arc(0, 0, lr, 0, Math.PI * 2);
+  if (scene.cover) {
+    ctx.save(); ctx.clip();
+    const s = lr * 2, ar = scene.cover.width / scene.cover.height;
+    const dw = ar >= 1 ? s * ar : s, dh = ar >= 1 ? s : s / ar;
+    ctx.drawImage(scene.cover, -dw / 2, -dh / 2, dw, dh);
+    ctx.restore();
+  } else {
+    const lg = ctx.createLinearGradient(-lr, -lr, lr, lr);
+    lg.addColorStop(0, p.fg[0]); lg.addColorStop(1, p.fg[1]);
+    ctx.fillStyle = lg; ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.font = `700 ${Math.round(lr * 0.28)}px Inter, system-ui, sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText((scene.title || "CreatorSet").slice(0, 14), 0, -lr * 0.22);
+    ctx.font = `500 ${Math.round(lr * 0.18)}px Inter, system-ui, sans-serif`;
+    ctx.globalAlpha = 0.8;
+    ctx.fillText((scene.artist || "music visualizer").slice(0, 18), 0, lr * 0.28);
+    ctx.globalAlpha = 1;
+  }
+  // spindle hole + rim
+  ctx.beginPath(); ctx.arc(0, 0, r * 0.035, 0, Math.PI * 2); ctx.fillStyle = "#0b0b0e"; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = Math.max(1, r * 0.01); ctx.stroke();
+  ctx.restore();
 }
 
 function fgGradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, p: Palette) {
@@ -184,15 +284,40 @@ function text(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: number,
   }
 }
 
-export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: Scene, w: number, h: number, t: number) {
+export function draw(out: CanvasRenderingContext2D, eng: Engine | null, scene: Scene, w: number, h: number, t: number) {
   const p = scene.palette;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  gradient(ctx, w, h, p);
-  backdrop(ctx, scene, w, h);
+  out.setTransform(1, 0, 0, 1, 0, 0);
+  gradient(out, w, h, p);
+  backdrop(out, scene, w, h);
   const lvl = eng ? eng.level() : 0;
   smoothLevel += (lvl - smoothLevel) * 0.2;
   const cx = w / 2;
   const short = Math.min(w, h);
+
+  // the visualizer itself goes on the feedback layer
+  const L = layerFor(w, h);
+  const ctx = L.getContext("2d")!;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  const useTrails = scene.trails && scene.style !== "xp";
+  if (useTrails) {
+    // fade what was there, then zoom it a hair around the centre (more on a kick)
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "rgba(0,0,0,0.42)";
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = "source-over";
+    const z = 1.012 + kickEnv * 0.02;
+    ctx.save();
+    ctx.translate(cx, h * 0.46); ctx.scale(z, z); ctx.rotate(0.0015); ctx.translate(-cx, -h * 0.46);
+    ctx.globalAlpha = 0.96;
+    ctx.drawImage(L, 0, 0);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.clearRect(0, 0, w, h);
+  }
+  let textY: number | null = null;
   if (scene.style !== "xp") alive(ctx, eng, p, w, h, t);
   else { bassEnv = 0; kickEnv = 0; }
 
@@ -265,7 +390,6 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.fillText("made with CreatorSet.ai", w - w * 0.03, h - w * 0.03);
       ctx.globalAlpha = 1;
     }
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
   }
 
   if (scene.style === "radial") {
@@ -291,40 +415,22 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     }
     ctx.shadowBlur = 0;
     ctx.restore();
-    if (scene.cover) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r0 * 0.9, 0, Math.PI * 2);
-      ctx.clip();
-      const s = r0 * 1.8;
-      const ar = scene.cover.width / scene.cover.height;
-      const dw = ar >= 1 ? s * ar : s, dh = ar >= 1 ? s : s / ar;
-      ctx.drawImage(scene.cover, cx - dw / 2, cy - dh / 2, dw, dh);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = p.fg[0];
-      ctx.globalAlpha = 0.9;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r0 * 0.9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-    text(ctx, scene, w, h, cy + r0 + short * 0.3);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    vinyl(ctx, scene, cx, cy, r0 * 0.9, p);
+    textY = cy + r0 + short * 0.3;
   }
 
   if (scene.style === "wave") {
-    const pts = 256;
-    const wv = eng ? eng.waveform(pts) : new Float32Array(pts);
+    const pts = 160;
+    const wv = smoothWave(eng, pts, 0.5);
     const cy = h * 0.5;
-    const amp = h * 0.18;
+    const amp = h * 0.18 * (1 + bassEnv * 0.25);
     for (let layer = 2; layer >= 0; layer--) {
-      ctx.beginPath();
       for (let i = 0; i < pts; i++) {
-        const x = (i / (pts - 1)) * w;
-        const y = cy + wv[i] * amp * (1 - layer * 0.25) + Math.sin(i * 0.08 + t * 2 + layer) * h * 0.006 * (layer + 1);
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        sx[i] = (i / (pts - 1)) * w;
+        sy[i] = cy + wv[i] * amp * (1 - layer * 0.25) + Math.sin(i * 0.12 + t * 2 + layer) * h * 0.006 * (layer + 1);
       }
+      ctx.beginPath();
+      spline(ctx, sx, sy, pts);
       ctx.strokeStyle = p.fg[layer % p.fg.length];
       ctx.shadowColor = p.fg[layer % p.fg.length];
       ctx.shadowBlur = layer === 0 ? short * (0.012 + kickEnv * 0.03) : 0;
@@ -339,8 +445,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       const s = short * 0.3;
       roundedImage(ctx, scene.cover, cx - s / 2, cy - amp - s - h * 0.06, s, s * 0.08);
     }
-    text(ctx, scene, w, h, cy + amp + h * 0.1);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    textY = cy + amp + h * 0.1;
   }
 
   if (scene.style === "orb") {
@@ -383,8 +488,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.drawImage(scene.cover, cx - dw / 2, cy - dh / 2, dw, dh);
       ctx.restore();
     }
-    text(ctx, scene, w, h, cy + short * 0.42);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    textY = cy + short * 0.42;
   }
 
   if (scene.style === "bars") {
@@ -420,8 +524,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     }
     ctx.globalAlpha = 1;
     if (scene.cover) roundedImage(ctx, scene.cover, cx - short * 0.11, floor - maxH - short * 0.28, short * 0.22, short * 0.02);
-    text(ctx, scene, w, h, floor + h * 0.22);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    textY = floor + h * 0.22;
   }
 
   if (scene.style === "rings") {
@@ -467,8 +570,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.drawImage(scene.cover, cx - dw / 2, cy - dh / 2, dw, dh);
       ctx.restore();
     }
-    text(ctx, scene, w, h, cy + short * 0.44);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    textY = cy + short * 0.44;
   }
 
   if (scene.style === "dots") {
@@ -504,8 +606,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     }
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
-    text(ctx, scene, w, h, y0 + gh + h * 0.12);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    textY = y0 + gh + h * 0.12;
   }
 
   if (scene.style === "scope") {
@@ -522,7 +623,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
     ctx.globalAlpha = 1;
     const pts = 512;
-    const wv = eng ? eng.waveform(pts) : new Float32Array(pts);
+    const wv = smoothWave(eng, pts, 0.6);
     const cy = h * 0.5, amp = h * 0.28 * (1 + bassEnv * 0.3);
     for (let pass = 0; pass < 2; pass++) {
       ctx.beginPath();
@@ -541,7 +642,36 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
     if (scene.cover) roundedImage(ctx, scene.cover, w * 0.04, h * 0.05, short * 0.16, short * 0.015);
-    text(ctx, scene, w, h, h * 0.88);
-    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
+    textY = h * 0.88;
   }
+
+  // composite the layer, then the finish: kick flash, vignette, grain, and the words on top
+  out.setTransform(1, 0, 0, 1, 0, 0);
+  out.drawImage(L, 0, 0);
+  if (scene.style !== "xp") {
+    if (kickEnv > 0.25) {
+      out.globalAlpha = Math.min(0.18, (kickEnv - 0.25) * 0.5);
+      out.fillStyle = p.fg[0];
+      out.fillRect(0, 0, w, h);
+      out.globalAlpha = 1;
+    }
+    const vg = out.createRadialGradient(cx, h * 0.5, short * 0.35, cx, h * 0.5, Math.max(w, h) * 0.75);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,0.55)");
+    out.fillStyle = vg;
+    out.fillRect(0, 0, w, h);
+    if (scene.grain) {
+      const g = grainFor();
+      out.save();
+      out.globalAlpha = 0.045;
+      out.globalCompositeOperation = "overlay";
+      const ox = -Math.floor(Math.random() * 256), oy = -Math.floor(Math.random() * 256);
+      out.translate(ox, oy);
+      out.fillStyle = out.createPattern(g, "repeat")!;
+      out.fillRect(0, 0, w + 256, h + 256);
+      out.restore();
+    }
+  }
+  if (textY !== null) text(out, scene, w, h, textY);
+  drawCaptions(out, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
 }
