@@ -67,7 +67,7 @@ export default function App() {
     const el = audioRef.current!;
     el.src = URL.createObjectURL(f);
     setTrackName(f.name);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ""));
+    if (!title) setTitle(f.name.replace(/\.[^.]+$/, "").replace(/\s*\(\d+\)\s*$/, "").replace(/(mp3|wav|m4a|flac)$/i, "").replace(/[_-]+/g, " ").trim());
     ensureEngine();
     el.play().then(() => setPlaying(true)).catch(() => undefined);
   };
@@ -205,56 +205,68 @@ export default function App() {
         <h1>O Dio</h1>
         <p className="tag">Drop or paste a track. Pick a look. Export. Yours to remember.</p>
 
-        <label className="file">
-          <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
-          <span>{trackName || "Choose audio"}</span>
-        </label>
-        <label className="file">
-          <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onCover(e.target.files[0])} />
-          <span>{cover ? "Cover set" : "Cover art (optional)"}</span>
-        </label>
+        <section>
+          <h2>1 · Source</h2>
+          <label className="file">
+            <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
+            <span>{trackName ? `♪ ${trackName}` : "Choose a track (or drop / paste it)"}</span>
+          </label>
+          <button className={live ? "live on" : "live"} onClick={listenLive} disabled={exporting !== null}>
+            {live ? `● Listening to ${live.kind} · stop` : "or listen live to what I'm playing"}
+          </button>
+        </section>
 
-        <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <input placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
+        <section>
+          <h2>2 · Look</h2>
+          <div className="row">
+            {STYLES.map((s) => (
+              <button key={s.id} className={style === s.id ? "on" : ""} onClick={() => setStyle(s.id)}>{s.label}</button>
+            ))}
+          </div>
+          <div className="row">
+            {PALETTES.map((p, i) => (
+              <button key={p.name} className={paletteIdx === i ? "on swatch" : "swatch"} style={{ background: `linear-gradient(135deg, ${p.fg[0]}, ${p.fg[2]})` }} title={p.name} onClick={() => setPaletteIdx(i)} />
+            ))}
+          </div>
+          <label className="file">
+            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onCover(e.target.files[0])} />
+            <span>{cover ? "Cover art ✓ (click to change)" : "Cover art (optional)"}</span>
+          </label>
+          <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
+        </section>
 
-        <div className="row">
-          {STYLES.map((s) => (
-            <button key={s.id} className={style === s.id ? "on" : ""} onClick={() => setStyle(s.id)}>{s.label}</button>
-          ))}
-        </div>
-        <div className="row">
-          {PALETTES.map((p, i) => (
-            <button key={p.name} className={paletteIdx === i ? "on swatch" : "swatch"} style={{ background: `linear-gradient(135deg, ${p.fg[0]}, ${p.fg[2]})` }} title={p.name} onClick={() => setPaletteIdx(i)} />
-          ))}
-        </div>
-        <div className="row">
-          {ASPECTS.map((a) => (
-            <button key={a.id} className={aspect.id === a.id ? "on" : ""} onClick={() => setAspect(a)}>{a.id}</button>
-          ))}
-        </div>
-        <label className="check">
-          <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with O Dio" tag
-        </label>
+        <section>
+          <h2>3 · Format</h2>
+          <div className="row">
+            {ASPECTS.map((a) => (
+              <button key={a.id} className={aspect.id === a.id ? "on" : ""} onClick={() => setAspect(a)}>{a.id}</button>
+            ))}
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with O Dio" tag
+          </label>
+        </section>
 
-        <button className={live ? "live on" : "live"} onClick={listenLive} disabled={exporting !== null}>
-          {live ? `● Listening: ${live.kind} (stop)` : "Listen live: react to what I'm playing"}
-        </button>
-        <div className="row actions">
-          {live ? (
-            <button className="primary" onClick={recordLive}>
-              {exporting === null ? "Start recording" : `Stop recording · ${Math.floor(exporting / 60)}:${String(Math.floor(exporting % 60)).padStart(2, "0")}`}
-            </button>
-          ) : (
-            <>
-              <button onClick={toggle} disabled={!trackName || exporting !== null}>{playing ? "Pause" : "Play"}</button>
-              <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
-                {exporting === null ? "Export video" : `Recording ${Math.round(exporting * 100)}%`}
+        <section>
+          <h2>4 · Export</h2>
+          <div className="row actions">
+            {live ? (
+              <button className="primary" onClick={recordLive}>
+                {exporting === null ? "Start recording" : `Stop recording · ${Math.floor(exporting / 60)}:${String(Math.floor(exporting % 60)).padStart(2, "0")}`}
               </button>
-            </>
-          )}
-        </div>
-        <div className="bar"><div style={{ width: `${progress * 100}%` }} /></div>
-        <p className="hint">Export records in real time, so it takes as long as the song. Keep this tab in front.</p>
+            ) : (
+              <>
+                <button onClick={toggle} disabled={!trackName || exporting !== null}>{playing ? "Pause" : "Play"}</button>
+                <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
+                  {exporting === null ? "Export video" : `Recording ${Math.round(exporting * 100)}%`}
+                </button>
+              </>
+            )}
+          </div>
+          <div className="bar"><div style={{ width: `${progress * 100}%` }} /></div>
+          <p className="hint">{live ? "Recording runs until you stop it." : "Export records in real time, so it takes as long as the song. Keep this tab in front."}</p>
+        </section>
         <a className="gh" href="https://github.com/CreatorSet/o-dio" target="_blank" rel="noreferrer">github.com/CreatorSet/o-dio</a>
       </aside>
 

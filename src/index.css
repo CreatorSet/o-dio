@@ -9,7 +9,9 @@ body { margin: 0; }
 .app { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
 .panel { padding: 24px 20px; border-right: 1px solid #1d1d28; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .panel h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
-.tag { margin: -6px 0 6px; color: #9a9ab0; font-size: 13px; }
+.panel section { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px; border-top: 1px solid #1d1d28; }
+.panel section h2 { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8a8aa8; }
+.tag { margin: -6px 0 4px; color: #9a9ab0; font-size: 13px; }
 .file { display: block; border: 1px dashed #3a3a4d; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; color: #c9c9d9; }
 .file:hover { border-color: #7b2dff; }
 .file input { display: none; }
