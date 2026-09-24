@@ -207,49 +207,63 @@ export default function App() {
 
         <section>
           <h2>1 · Source</h2>
-          <label className="file">
-            <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
-            <span>{trackName ? `♪ ${trackName}` : "Choose a track (or drop / paste it)"}</span>
-          </label>
-          <button className={live ? "live on" : "live"} onClick={listenLive} disabled={exporting !== null}>
-            {live ? `● Listening to ${live.kind} · stop` : "or listen live to what I'm playing"}
-          </button>
+          <div className="cards">
+            <label className={trackName && !live ? "card on" : "card"}>
+              <input type="file" accept="audio/*,video/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
+              <span className="ic">♪</span>
+              <b>{trackName ? "Track loaded" : "Upload a track"}</b>
+              <small>{trackName || "Drop, paste or pick a file"}</small>
+            </label>
+            <button className={live ? "card on" : "card"} onClick={listenLive} disabled={exporting !== null}>
+              <span className="ic">{live ? "●" : "◉"}</span>
+              <b>{live ? "Listening" : "Listen live"}</b>
+              <small>{live ? `${live.kind} · tap to stop` : "React to what I'm playing"}</small>
+            </button>
+          </div>
         </section>
 
         <section>
-          <h2>2 · Look</h2>
+          <h2>2 · Style</h2>
           <div className="row">
             {STYLES.map((s) => (
               <button key={s.id} className={style === s.id ? "on" : ""} onClick={() => setStyle(s.id)}>{s.label}</button>
             ))}
           </div>
+        </section>
+
+        <section>
+          <h2>3 · Color</h2>
           <div className="row">
             {PALETTES.map((p, i) => (
               <button key={p.name} className={paletteIdx === i ? "on swatch" : "swatch"} style={{ background: `linear-gradient(135deg, ${p.fg[0]}, ${p.fg[2]})` }} title={p.name} onClick={() => setPaletteIdx(i)} />
             ))}
           </div>
+        </section>
+
+        <section>
+          <h2>4 · Display Labels</h2>
           <label className="file">
             <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onCover(e.target.files[0])} />
             <span>{cover ? "Cover art ✓ (click to change)" : "Cover art (optional)"}</span>
           </label>
           <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
           <input placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
-        </section>
-
-        <section>
-          <h2>3 · Format</h2>
-          <div className="row">
-            {ASPECTS.map((a) => (
-              <button key={a.id} className={aspect.id === a.id ? "on" : ""} onClick={() => setAspect(a)}>{a.id}</button>
-            ))}
-          </div>
           <label className="check">
             <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with O Dio" tag
           </label>
         </section>
 
         <section>
-          <h2>4 · Export</h2>
+          <h2>5 · Aspect Ratio</h2>
+          <div className="row">
+            {ASPECTS.map((a) => (
+              <button key={a.id} className={aspect.id === a.id ? "on" : ""} onClick={() => setAspect(a)}>{a.id}</button>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2>Export</h2>
           <div className="row actions">
             {live ? (
               <button className="primary" onClick={recordLive}>
