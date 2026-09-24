@@ -97,7 +97,14 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     if (peaks.length !== n) { peaks.length = 0; for (let i = 0; i < n; i++) peaks.push(0); }
     const margin = w * 0.06;
     const gap = w * 0.008, bw = (w - margin * 2 - gap * (n - 1)) / n;
-    const base = h * 0.72, maxH = h * 0.4;
+    // Layout top-down: title strip, cover (if any), bars + their reflection. Fits every aspect.
+    const strip = h * 0.05;
+    const coverS = scene.cover ? Math.min(short * 0.3, h * 0.28) : 0;
+    const coverY = strip + h * 0.04;
+    const top = scene.cover ? coverY + coverS + h * 0.05 : strip + h * 0.08;
+    const bottom = h * 0.93;
+    const maxH = Math.min(h * 0.4, (bottom - top) / 1.5);
+    const base = top + maxH;
     const seg = Math.max(4, Math.round(maxH / 28)), segGap = Math.max(1, seg * 0.28);
     const g = ctx.createLinearGradient(0, base, 0, base - maxH);
     g.addColorStop(0, "#19c41a");
@@ -126,7 +133,6 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.fillRect(x, base - peaks[i] - seg * 0.7, bw, Math.max(2, seg * 0.3));
     }
     // XP Luna strip at the top, the title lives in it
-    const strip = h * 0.05;
     const lg = ctx.createLinearGradient(0, 0, 0, strip);
     lg.addColorStop(0, "#3d95ff");
     lg.addColorStop(0.5, "#0a5fd6");
@@ -139,10 +145,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
     ctx.fillText(`${scene.title || "O Dio"}${scene.artist ? " - " + scene.artist : ""} - Windows Media Player`, strip * 0.4, strip * 0.66);
     ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-    if (scene.cover) {
-      const s = short * 0.3;
-      roundedImage(ctx, scene.cover, cx - s / 2, base - maxH - s - h * 0.05, s, 6);
-    }
+    if (scene.cover) roundedImage(ctx, scene.cover, cx - coverS / 2, coverY, coverS, 6);
     if (scene.watermark) {
       ctx.globalAlpha = 0.5;
       ctx.textAlign = "right";

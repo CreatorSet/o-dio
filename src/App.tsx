@@ -29,6 +29,16 @@ export default function App() {
 
   sceneRef.current = { style, palette: PALETTES[paletteIdx], title, artist, cover, watermark };
 
+  // keep the Play/Pause button honest whatever the element does (autoplay refusals, end of track)
+  useEffect(() => {
+    const el = audioRef.current!;
+    const on = () => setPlaying(true), off = () => setPlaying(false);
+    el.addEventListener("play", on);
+    el.addEventListener("pause", off);
+    el.addEventListener("ended", off);
+    return () => { el.removeEventListener("play", on); el.removeEventListener("pause", off); el.removeEventListener("ended", off); };
+  }, []);
+
   // render loop
   useEffect(() => {
     let raf = 0;
