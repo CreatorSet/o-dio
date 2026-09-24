@@ -42,6 +42,7 @@ export default function App() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [cover, setCover] = useState<HTMLImageElement | null>(null);
+  const coverInput = useRef<HTMLInputElement>(null);
   const [background, setBackground] = useState<HTMLImageElement | null>(null);
   const [artistPhoto, setArtistPhoto] = useState<HTMLImageElement | null>(null);
   const [bgDim, setBgDim] = useState(0.55);
@@ -404,8 +405,8 @@ export default function App() {
         <section>
           <h2>4 · Display Labels</h2>
           <label className="file">
-            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onCover(e.target.files[0])} />
-            <span>{cover ? "Cover art ✓ (click to change)" : "Cover art (optional)"}</span>
+            <input ref={coverInput} type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onCover(e.target.files[0])} />
+            <span>{cover ? "Center image ✓ (click to change)" : "Center image / cover art — or click the video"}</span>
           </label>
           <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
           <input placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
@@ -463,7 +464,7 @@ export default function App() {
       </aside>
 
       <main className="stage">
-        <canvas ref={canvasRef} width={aspect.w} height={aspect.h} style={{ aspectRatio: `${aspect.w} / ${aspect.h}` }} />
+        <canvas ref={canvasRef} width={aspect.w} height={aspect.h} style={{ aspectRatio: `${aspect.w} / ${aspect.h}` }} onClick={() => coverInput.current?.click()} title="Click to set the center image" />
         <Transport
           audio={audioRef}
           eng={engRef}
