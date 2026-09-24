@@ -35,3 +35,7 @@ Add an id to `STYLES` in `src/visualizers.ts` and a branch in `draw()`. You get 
 ## License
 
 MIT. Made by [CreatorSet](https://creatorset.com).
+
+## AI background
+
+"Generate" in the Color section posts `{ prompt, aspect }` to a small endpoint that runs Nano Banana 2 and returns `{ dataUrl }`. The default endpoint is CreatorSet's (`https://creatorset.com/api/odio/background`, 12 per hour per IP). Self-hosting? Set `VITE_BG_API` at build time to your own; the reference implementation is `src/pages/api/odio/background.ts` in the CreatorSet shop.

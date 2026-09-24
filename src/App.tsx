@@ -5,6 +5,9 @@ import { download, startRecording } from "./export";
 import { computePeaks, Transport, type Peaks } from "./Transport";
 import { CAPTION_STYLES, decodeForWhisper, transcribe, type CaptionStyle, type Transcribe } from "./captions";
 
+/** Where "Generate with AI" goes. Override with VITE_BG_API when self-hosting; see the README. */
+const BG_API = import.meta.env.VITE_BG_API || "https://creatorset.com/api/odio/background";
+
 const ASPECTS = [
   { id: "16:9", w: 1920, h: 1080 },
   { id: "9:16", w: 1080, h: 1920 },
@@ -42,6 +45,8 @@ export default function App() {
   const [background, setBackground] = useState<HTMLImageElement | null>(null);
   const [artistPhoto, setArtistPhoto] = useState<HTMLImageElement | null>(null);
   const [bgDim, setBgDim] = useState(0.55);
+  const [bgPrompt, setBgPrompt] = useState("");
+  const [bgJob, setBgJob] = useState<string | null>(null);
   // paletteIdx === -1 means the custom palette below
   const [custom, setCustom] = useState<Palette>({ ...PALETTES[0], name: "Custom" });
   const [watermark, setWatermark] = useState(true);
@@ -110,6 +115,25 @@ export default function App() {
   const onCover = (f: File) => loadImage(f).then(setCover);
   const onBackground = (f: File) => loadImage(f).then(setBackground);
   const onArtistPhoto = (f: File) => loadImage(f).then(setArtistPhoto);
+
+  // AI background: a CreatorSet endpoint runs Nano Banana 2 and returns the picture inline.
+  const generateBackground = async () => {
+    const prompt = bgPrompt.trim();
+    if (prompt.length < 3 || bgJob) return;
+    setBgJob("Painting with Nano Banana… ~20 s");
+    try {
+      const r = await fetch(BG_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt, aspect: aspect.id }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+      const img = new Image();
+      await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(new Error("bad image")); img.src = j.dataUrl; });
+      setBackground(img);
+      setBgJob(null);
+    } catch (e) {
+      setBgJob(`Failed: ${(e as Error).message}`);
+      setTimeout(() => setBgJob(null), 6000);
+    }
+  };
 
   // Custom palette from an image: sample it small, keep the three most saturated distinct hues.
   const paletteFromImage = (img: HTMLImageElement) => {
@@ -351,6 +375,11 @@ export default function App() {
             <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onBackground(e.target.files[0])} />
             <span>{background ? "Background image ✓ (click to change)" : "Background image (optional)"}</span>
           </label>
+          <div className="gen">
+            <input placeholder="or describe one: neon Tokyo street in the rain" value={bgPrompt} onChange={(e) => setBgPrompt(e.target.value)} onKeyDown={(e) => e.key === "Enter" && generateBackground()} disabled={bgJob !== null} />
+            <button className="primary" onClick={generateBackground} disabled={bgJob !== null || bgPrompt.trim().length < 3}>{bgJob ? "…" : "✨ Generate"}</button>
+          </div>
+          {bgJob && <p className="hint">{bgJob}</p>}
           {background && (
             <label className="slider">
               <span>Dim</span>
