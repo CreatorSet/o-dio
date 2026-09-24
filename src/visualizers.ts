@@ -118,7 +118,7 @@ function text(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: number,
     ctx.globalAlpha = 0.5;
     ctx.textAlign = "right";
     ctx.font = `600 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
-    ctx.fillText("made with O Dio", w - w * 0.03, h - w * 0.03);
+    ctx.fillText("made with O'dio", w - w * 0.03, h - w * 0.03);
     ctx.globalAlpha = 1;
   }
 }
@@ -191,7 +191,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
     ctx.textAlign = "left";
     ctx.font = `700 ${Math.round(strip * 0.5)}px Tahoma, Verdana, system-ui, sans-serif`;
     ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
-    ctx.fillText(`${scene.title || "O Dio"}${scene.artist ? " - " + scene.artist : ""} - Windows Media Player`, strip * 0.4, strip * 0.66);
+    ctx.fillText(`${scene.title || "O'dio"}${scene.artist ? " - " + scene.artist : ""} - Windows Media Player`, strip * 0.4, strip * 0.66);
     ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     if (scene.cover) roundedImage(ctx, scene.cover, cx - coverS / 2, coverY, coverS, 6);
     if (scene.watermark) {
@@ -199,7 +199,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.textAlign = "right";
       ctx.fillStyle = "#fff";
       ctx.font = `600 ${Math.round(w * 0.022)}px Tahoma, Verdana, system-ui, sans-serif`;
-      ctx.fillText("made with O Dio", w - w * 0.03, h - w * 0.03);
+      ctx.fillText("made with O'dio", w - w * 0.03, h - w * 0.03);
       ctx.globalAlpha = 1;
     }
   }

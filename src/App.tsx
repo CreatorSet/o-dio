@@ -202,7 +202,7 @@ export default function App() {
   return (
     <div className="app" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <aside className="panel">
-        <h1>O Dio</h1>
+        <h1>O'dio</h1>
         <p className="tag">Drop or paste a track. Pick a look. Export. Yours to remember.</p>
 
         <section>
@@ -249,7 +249,7 @@ export default function App() {
           <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
           <input placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
           <label className="check">
-            <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with O Dio" tag
+            <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with O'dio" tag
           </label>
         </section>
 

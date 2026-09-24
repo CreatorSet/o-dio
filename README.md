@@ -1,4 +1,4 @@
-# O Dio
+# O'dio
 
 Open-source music visualizer. Drop a track, pick a look, export a video. Runs entirely in your browser: nothing is uploaded, nothing is stored.
 
