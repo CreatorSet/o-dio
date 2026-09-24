@@ -1,4 +1,5 @@
 import type { Engine } from "./audio";
+import { drawCaptions, type CaptionStyle, type Transcribe } from "./captions";
 
 export type Palette = { name: string; bg: [string, string]; fg: string[]; text: string };
 
@@ -30,6 +31,10 @@ export type Scene = {
   background: HTMLImageElement | null;
   bgDim: number;
   watermark: boolean;
+  captions: Transcribe | null;
+  captionStyle: CaptionStyle;
+  /** Playback position in seconds, set by the app each frame. */
+  time: number;
 };
 
 type Particle = { a: number; r: number; v: number; s: number };
@@ -246,6 +251,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.fillText("made with CreatorSet.ai", w - w * 0.03, h - w * 0.03);
       ctx.globalAlpha = 1;
     }
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
   }
 
   if (scene.style === "radial") {
@@ -290,6 +296,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.globalAlpha = 1;
     }
     text(ctx, scene, w, h, cy + r0 + short * 0.3);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
   }
 
   if (scene.style === "wave") {
@@ -319,6 +326,7 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       roundedImage(ctx, scene.cover, cx - s / 2, cy - amp - s - h * 0.06, s, s * 0.08);
     }
     text(ctx, scene, w, h, cy + amp + h * 0.1);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
   }
 
   if (scene.style === "orb") {
@@ -362,5 +370,6 @@ export function draw(ctx: CanvasRenderingContext2D, eng: Engine | null, scene: S
       ctx.restore();
     }
     text(ctx, scene, w, h, cy + short * 0.42);
+    drawCaptions(ctx, scene.captions, scene.captionStyle, scene.time, w, h, scene.palette);
   }
 }

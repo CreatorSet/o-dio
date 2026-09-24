@@ -3,6 +3,7 @@ import { createEngine, type Engine } from "./audio";
 import { draw, PALETTES, STYLES, type Palette, type Scene, type StyleId } from "./visualizers";
 import { download, startRecording } from "./export";
 import { computePeaks, Transport, type Peaks } from "./Transport";
+import { CAPTION_STYLES, decodeForWhisper, transcribe, type CaptionStyle, type Transcribe } from "./captions";
 
 const ASPECTS = [
   { id: "16:9", w: 1920, h: 1080 },
@@ -14,7 +15,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const engRef = useRef<Engine | null>(null);
-  const sceneRef = useRef<Scene>({ style: "radial", palette: PALETTES[0], title: "", artist: "", cover: null, artistPhoto: null, background: null, bgDim: 0.55, watermark: true });
+  const sceneRef = useRef<Scene>({ style: "radial", palette: PALETTES[0], title: "", artist: "", cover: null, artistPhoto: null, background: null, bgDim: 0.55, watermark: true, captions: null, captionStyle: "off", time: 0 });
 
   const [trackName, setTrackName] = useState("");
   const [style, setStyle] = useState<StyleId>("radial");
@@ -31,13 +32,17 @@ export default function App() {
   const [watermark, setWatermark] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [exporting, setExporting] = useState<null | number>(null);
+  const [captions, setCaptions] = useState<Transcribe | null>(null);
+  const [captionStyle, setCaptionStyle] = useState<CaptionStyle>("karaoke");
+  const [captionJob, setCaptionJob] = useState<string | null>(null);
+  const trackFile = useRef<File | null>(null);
   const [live, setLive] = useState<{ stream: MediaStream; kind: string } | null>(null);
   const liveRec = useRef<{ stop: () => void } | null>(null);
   const [progress, setProgress] = useState(0);
   const [peaks, setPeaks] = useState<Peaks | null>(null);
 
   const palette = paletteIdx === -1 ? custom : PALETTES[paletteIdx];
-  sceneRef.current = { style, palette, title, artist, cover, artistPhoto, background, bgDim, watermark };
+  sceneRef.current = { style, palette, title, artist, cover, artistPhoto, background, bgDim, watermark, captions, captionStyle, time: sceneRef.current.time };
 
   // keep the Play/Pause button honest whatever the element does (autoplay refusals, end of track)
   useEffect(() => {
@@ -56,6 +61,7 @@ export default function App() {
     const ctx = c.getContext("2d")!;
     const t0 = performance.now();
     const loop = () => {
+      sceneRef.current.time = audioRef.current?.currentTime ?? 0;
       draw(ctx, engRef.current, sceneRef.current, c.width, c.height, (performance.now() - t0) / 1000);
       const el = audioRef.current;
       if (el && el.duration) setProgress(el.currentTime / el.duration);
@@ -75,6 +81,8 @@ export default function App() {
     const el = audioRef.current!;
     el.src = URL.createObjectURL(f);
     setTrackName(f.name);
+    trackFile.current = f;
+    setCaptions(null);
     setPeaks(null);
     computePeaks(f).then(setPeaks).catch(() => setPeaks(null));
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, "").replace(/\s*\(\d+\)\s*$/, "").replace(/(mp3|wav|m4a|flac)$/i, "").replace(/[_-]+/g, " ").trim());
@@ -190,6 +198,26 @@ export default function App() {
     setExporting(null);
     setPlaying(false);
     download(blob, `${(title || trackName || "o-dio").replace(/[^\w\- ]+/g, "")}.${ext}`);
+  };
+
+  const makeCaptions = async () => {
+    const f = trackFile.current;
+    if (!f || captionJob) return;
+    try {
+      setCaptionJob("Decoding audio…");
+      const audio = await decodeForWhisper(f);
+      setCaptionJob("Loading Whisper (first time downloads ~80 MB)…");
+      const tr = await transcribe(audio, (p) => {
+        if (p.type === "load") setCaptionJob(`Loading Whisper… ${Math.round(p.progress)}%`);
+        else setCaptionJob(p.text);
+      });
+      setCaptions(tr);
+      if (captionStyle === "off") setCaptionStyle("karaoke");
+      setCaptionJob(null);
+    } catch (e) {
+      setCaptionJob(`Failed: ${(e as Error).message}`);
+      setTimeout(() => setCaptionJob(null), 6000);
+    }
   };
 
   const takeFiles = (files: Iterable<File>) => {
@@ -334,6 +362,20 @@ export default function App() {
               <button key={a.id} className={aspect.id === a.id ? "on" : ""} onClick={() => setAspect(a)}>{a.id}</button>
             ))}
           </div>
+        </section>
+
+        <section>
+          <h2>6 · Captions</h2>
+          <button className="live" onClick={makeCaptions} disabled={!trackFile.current || captionJob !== null || live !== null}>
+            {captionJob ?? (captions ? `✓ ${captions.words.length} words · transcribe again` : "Transcribe lyrics with Whisper (in your browser)")}
+          </button>
+          {captions && (
+            <div className="row">
+              {CAPTION_STYLES.map((c) => (
+                <button key={c.id} className={captionStyle === c.id ? "on" : ""} onClick={() => setCaptionStyle(c.id)}>{c.label}</button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section>
