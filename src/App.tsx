@@ -105,19 +105,54 @@ export default function App() {
     download(blob, `${(title || trackName || "o-dio").replace(/[^\w\- ]+/g, "")}.${ext}`);
   };
 
+  const takeFiles = (files: Iterable<File>) => {
+    let took = false;
+    for (const f of files) {
+      const audio = f.type.startsWith("audio/") || /\.(mp3|wav|m4a|aac|ogg|flac|webm|mp4)$/i.test(f.name);
+      if (audio) { onTrack(f); took = true; }
+      else if (f.type.startsWith("image/")) { onCover(f); took = true; }
+    }
+    return took;
+  };
+
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    for (const f of Array.from(e.dataTransfer.files)) {
-      if (f.type.startsWith("audio/")) onTrack(f);
-      else if (f.type.startsWith("image/")) onCover(f);
-    }
+    takeFiles(Array.from(e.dataTransfer.files));
   };
+
+  // Paste anything: a copied audio file (Finder / Explorer), an image for the cover, or a
+  // direct link to an audio file. Links only play through the analyser when the host allows CORS.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.length && takeFiles(files)) { e.preventDefault(); return; }
+      const text = e.clipboardData?.getData("text")?.trim() ?? "";
+      if (/^https?:\/\/\S+\.(mp3|wav|m4a|aac|ogg|flac)(\?\S*)?$/i.test(text)) {
+        e.preventDefault();
+        fetch(text)
+          .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+          .then((b) => onTrack(new File([b], text.split("/").pop()?.split("?")[0] || "track", { type: b.type || "audio/mpeg" })))
+          .catch(() => {
+            const el = audioRef.current!;
+            el.src = text;
+            setTrackName(text.split("/").pop()?.split("?")[0] || "link");
+            ensureEngine();
+            el.play().catch(() => undefined);
+          });
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title]);
 
   return (
     <div className="app" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <aside className="panel">
         <h1>O Dio</h1>
-        <p className="tag">Drop a track. Pick a look. Export. Yours to remember.</p>
+        <p className="tag">Drop or paste a track. Pick a look. Export. Yours to remember.</p>
 
         <label className="file">
           <input type="file" accept="audio/*" onChange={(e) => e.target.files?.[0] && onTrack(e.target.files[0])} />
