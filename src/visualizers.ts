@@ -24,6 +24,8 @@ export type Scene = {
   title: string;
   artist: string;
   cover: HTMLImageElement | null;
+  /** Round avatar next to the artist name. */
+  artistPhoto: HTMLImageElement | null;
   /** Optional photo behind everything, drawn cover-fit and dimmed by `bgDim` (0..1). */
   background: HTMLImageElement | null;
   bgDim: number;
@@ -116,23 +118,49 @@ function roundedImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: n
 }
 
 function text(ctx: CanvasRenderingContext2D, scene: Scene, w: number, h: number, y: number) {
+  // sizes follow the short side so 16:9 and 9:16 get the same type scale; the block is clamped
+  // above the watermark so the artist line never falls off the bottom
+  const u = Math.min(w, h);
+  const titleS = Math.round(u * 0.06), artistS = Math.round(u * 0.034), avatar = u * 0.05;
+  const rows = (scene.title ? titleS : 0) + (scene.artist ? artistS * 1.7 : 0);
+  y = Math.min(y, h - u * 0.09 - rows + (scene.title ? titleS : 0));
   ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
   ctx.fillStyle = scene.palette.text;
+  ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = u * 0.01;
   if (scene.title) {
-    ctx.font = `700 ${Math.round(w * 0.055)}px Inter, system-ui, sans-serif`;
+    ctx.font = `700 ${titleS}px Inter, system-ui, sans-serif`;
     ctx.fillText(scene.title, w / 2, y);
   }
   if (scene.artist) {
-    ctx.globalAlpha = 0.75;
-    ctx.font = `500 ${Math.round(w * 0.032)}px Inter, system-ui, sans-serif`;
-    ctx.fillText(scene.artist, w / 2, y + w * 0.05);
+    const ay = scene.title ? y + artistS * 1.7 : y;
+    ctx.font = `500 ${artistS}px Inter, system-ui, sans-serif`;
+    let tx = w / 2;
+    if (scene.artistPhoto) {
+      const tw = ctx.measureText(scene.artist).width;
+      const gap = avatar * 0.3;
+      const left = w / 2 - (avatar + gap + tw) / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(left + avatar / 2, ay - artistS * 0.35, avatar / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      const img = scene.artistPhoto, ar = img.width / img.height;
+      const dw = ar >= 1 ? avatar * ar : avatar, dh = ar >= 1 ? avatar : avatar / ar;
+      ctx.drawImage(img, left + (avatar - dw) / 2, ay - artistS * 0.35 - avatar / 2 + (avatar - dh) / 2, dw, dh);
+      ctx.restore();
+      tx = left + avatar + gap + tw / 2;
+    }
+    ctx.globalAlpha = 0.85;
+    ctx.fillText(scene.artist, tx, ay);
     ctx.globalAlpha = 1;
   }
+  ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
   if (scene.watermark) {
     ctx.globalAlpha = 0.5;
     ctx.textAlign = "right";
-    ctx.font = `600 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
-    ctx.fillText("made with CreatorSet.ai", w - w * 0.03, h - w * 0.03);
+    ctx.font = `600 ${Math.round(u * 0.022)}px Inter, system-ui, sans-serif`;
+    ctx.fillText("made with CreatorSet.ai", w - u * 0.03, h - u * 0.03);
     ctx.globalAlpha = 1;
   }
 }

@@ -14,7 +14,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const engRef = useRef<Engine | null>(null);
-  const sceneRef = useRef<Scene>({ style: "radial", palette: PALETTES[0], title: "", artist: "", cover: null, background: null, bgDim: 0.55, watermark: true });
+  const sceneRef = useRef<Scene>({ style: "radial", palette: PALETTES[0], title: "", artist: "", cover: null, artistPhoto: null, background: null, bgDim: 0.55, watermark: true });
 
   const [trackName, setTrackName] = useState("");
   const [style, setStyle] = useState<StyleId>("radial");
@@ -24,6 +24,7 @@ export default function App() {
   const [artist, setArtist] = useState("");
   const [cover, setCover] = useState<HTMLImageElement | null>(null);
   const [background, setBackground] = useState<HTMLImageElement | null>(null);
+  const [artistPhoto, setArtistPhoto] = useState<HTMLImageElement | null>(null);
   const [bgDim, setBgDim] = useState(0.55);
   // paletteIdx === -1 means the custom palette below
   const [custom, setCustom] = useState<Palette>({ ...PALETTES[0], name: "Custom" });
@@ -36,7 +37,7 @@ export default function App() {
   const [peaks, setPeaks] = useState<Peaks | null>(null);
 
   const palette = paletteIdx === -1 ? custom : PALETTES[paletteIdx];
-  sceneRef.current = { style, palette, title, artist, cover, background, bgDim, watermark };
+  sceneRef.current = { style, palette, title, artist, cover, artistPhoto, background, bgDim, watermark };
 
   // keep the Play/Pause button honest whatever the element does (autoplay refusals, end of track)
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function App() {
   const loadImage = (f: File) => new Promise<HTMLImageElement>((res) => { const img = new Image(); img.onload = () => res(img); img.src = URL.createObjectURL(f); });
   const onCover = (f: File) => loadImage(f).then(setCover);
   const onBackground = (f: File) => loadImage(f).then(setBackground);
+  const onArtistPhoto = (f: File) => loadImage(f).then(setArtistPhoto);
 
   // Custom palette from an image: sample it small, keep the three most saturated distinct hues.
   const paletteFromImage = (img: HTMLImageElement) => {
@@ -316,6 +318,10 @@ export default function App() {
           </label>
           <input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
           <input placeholder="Artist" value={artist} onChange={(e) => setArtist(e.target.value)} />
+          <label className="file">
+            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && onArtistPhoto(e.target.files[0])} />
+            <span>{artistPhoto ? "Artist photo ✓ (click to change)" : "Artist photo (optional, shows next to the name)"}</span>
+          </label>
           <label className="check">
             <input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> "made with CreatorSet.ai" tag
           </label>
