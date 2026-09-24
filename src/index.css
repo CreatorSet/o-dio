@@ -1,0 +1,35 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background: #0a0a0f;
+  color: #f2f2f7;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.app { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
+.panel { padding: 24px 20px; border-right: 1px solid #1d1d28; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.panel h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+.tag { margin: -6px 0 6px; color: #9a9ab0; font-size: 13px; }
+.file { display: block; border: 1px dashed #3a3a4d; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; color: #c9c9d9; }
+.file:hover { border-color: #7b2dff; }
+.file input { display: none; }
+input[type="text"], input:not([type]) { background: #14141c; border: 1px solid #26263a; color: #fff; border-radius: 8px; padding: 9px 10px; font-size: 14px; }
+.row { display: flex; gap: 6px; flex-wrap: wrap; }
+.row button { flex: 1 0 auto; background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 7px 8px; font-size: 13px; cursor: pointer; }
+.row button.on { border-color: #ff2d95; color: #fff; background: #1f1424; }
+.row button.swatch { flex: 0 0 34px; height: 34px; border-radius: 50%; padding: 0; }
+.row button.swatch.on { outline: 2px solid #fff; outline-offset: 2px; }
+.row.actions button { padding: 11px; font-weight: 600; }
+.row.actions .primary { background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
+button:disabled { opacity: 0.4; cursor: default; }
+.check { font-size: 13px; color: #c9c9d9; display: flex; align-items: center; gap: 8px; }
+.bar { height: 4px; background: #1d1d28; border-radius: 2px; overflow: hidden; }
+.bar div { height: 100%; background: linear-gradient(90deg, #ff2d95, #2dfcff); transition: width 0.2s linear; }
+.hint { font-size: 12px; color: #6f6f88; margin: 0; }
+.gh { margin-top: auto; font-size: 12px; color: #6f6f88; text-decoration: none; }
+.stage { display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse at top, #12121c, #08080c); }
+.stage canvas { max-height: calc(100vh - 48px); max-width: 100%; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+@media (max-width: 800px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
+  .panel { border-right: none; border-bottom: 1px solid #1d1d28; }
+}
