@@ -4,6 +4,7 @@ import { draw, PALETTES, STYLES, type Scene, type StyleId } from "./visualizers"
 import { download, startRecording } from "./export";
 
 const ASPECTS = [
+  { id: "16:9", w: 1920, h: 1080 },
   { id: "9:16", w: 1080, h: 1920 },
   { id: "1:1", w: 1080, h: 1080 },
   { id: "16:9", w: 1920, h: 1080 },
