@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createEngine, type Engine } from "./audio";
-import { draw, PALETTES, STYLES, type Palette, type Scene, type StyleId } from "./visualizers";
-import { download, startRecording } from "./export";
+import { draw, PALETTES, resetFx, STYLES, type Palette, type Scene, type StyleId } from "./visualizers";
+import { canExportOffline, download, exportOffline, startRecording } from "./export";
+import { createOfflineEngine } from "./offline";
 import { computePeaks, Transport, type Peaks } from "./Transport";
 import { CAPTION_STYLES, decodeForWhisper, groupLines, transcribe, type CaptionStyle, type Transcribe } from "./captions";
 
@@ -55,6 +56,8 @@ export default function App() {
   const [watermark, setWatermark] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [exporting, setExporting] = useState<null | number>(null);
+  const renderingOffline = useRef(false);
+  const [exportNote, setExportNote] = useState("");
   const [captions, setCaptions] = useState<Transcribe | null>(null);
   const [captionStyle, setCaptionStyle] = useState<CaptionStyle>("karaoke");
   const [captionJob, setCaptionJob] = useState<string | null>(null);
@@ -87,8 +90,10 @@ export default function App() {
     const ctx = c.getContext("2d")!;
     const t0 = performance.now();
     const loop = () => {
-      sceneRef.current.time = audioRef.current?.currentTime ?? 0;
-      draw(ctx, engRef.current, sceneRef.current, c.width, c.height, (performance.now() - t0) / 1000);
+      if (!renderingOffline.current) {
+        sceneRef.current.time = audioRef.current?.currentTime ?? 0;
+        draw(ctx, engRef.current, sceneRef.current, c.width, c.height, (performance.now() - t0) / 1000);
+      }
       const el = audioRef.current;
       if (el && el.duration) setProgress(el.currentTime / el.duration);
       raf = requestAnimationFrame(loop);
@@ -239,25 +244,55 @@ export default function App() {
     download(blob, `${(title || "live").replace(/[^\w\- ]+/g, "")}.${ext}`);
   };
 
+  // Export: decode the file, then render every frame at its exact time straight into an
+  // H.264/AAC mp4 with WebCodecs. Needs Chrome / Edge / Safari 16.4+; no real-time recording.
   const exportVideo = async () => {
     const el = audioRef.current!;
     if (!el.src || exporting !== null) return;
-    const eng = ensureEngine();
-    el.pause();
-    el.currentTime = 0;
-    setExporting(0);
-    const { rec, done, ext } = startRecording(canvasRef.current!, eng.stream, 60);
-    await el.play();
-    setPlaying(true);
-    const tick = () => setExporting(el.duration ? el.currentTime / el.duration : 0);
-    const iv = setInterval(tick, 200);
-    await new Promise<void>((r) => el.addEventListener("ended", () => r(), { once: true }));
-    clearInterval(iv);
-    rec.stop();
-    const blob = await done;
-    setExporting(null);
-    setPlaying(false);
-    download(blob, `${(title || trackName || "o-dio").replace(/[^\w\- ]+/g, "")}.${ext}`);
+    const f = trackFile.current;
+    if (!f) { setExportNote("Load a file to export (pasted links can't be rendered)"); setTimeout(() => setExportNote(""), 5000); return; }
+    if (!canExportOffline()) { setExportNote("This browser can't encode video. Use Chrome, Edge or Safari 16.4+."); setTimeout(() => setExportNote(""), 8000); return; }
+    {
+      const c = canvasRef.current!;
+      const ctx = c.getContext("2d")!;
+      el.pause();
+      setPlaying(false);
+      setExporting(0);
+      setExportNote("Decoding…");
+      try {
+        const dec = new OfflineAudioContext(1, 1, 44100);
+        const buf = await dec.decodeAudioData(await f.arrayBuffer());
+        const off = createOfflineEngine(buf);
+        renderingOffline.current = true;
+        resetFx();
+        const t0 = performance.now();
+        const blob = await exportOffline({
+          canvas: c,
+          audio: buf,
+          fps: 60,
+          renderFrame: (t) => {
+            off.seek(t);
+            sceneRef.current.time = t;
+            draw(ctx, off, sceneRef.current, c.width, c.height, t);
+          },
+          onProgress: (p) => {
+            setExporting(p);
+            const el2 = (performance.now() - t0) / 1000;
+            setExportNote(p > 0.02 ? `Rendering ${Math.round(p * 100)}% · ${Math.round((el2 / p) * (1 - p))} s left` : "Rendering…");
+          },
+        });
+        download(blob, `${(title || trackName || "visualizer").replace(/[^\w\- ]+/g, "")}.mp4`);
+        setExportNote(`Done in ${Math.round((performance.now() - t0) / 1000)} s`);
+        setTimeout(() => setExportNote(""), 6000);
+      } catch (e) {
+        setExportNote(`Export failed: ${(e as Error).message}`);
+        setTimeout(() => setExportNote(""), 8000);
+      } finally {
+        renderingOffline.current = false;
+        resetFx();
+        setExporting(null);
+      }
+    }
   };
 
   // Captions: cloud first (Whisper large-v3-turbo on Modal, ~10-30 s), browser Whisper-base if
@@ -477,13 +512,13 @@ export default function App() {
             ) : (
               <>
                 <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
-                  {exporting === null ? "Export video" : `Recording ${Math.round(exporting * 100)}%`}
+                  {exporting === null ? "Export video" : `${Math.round(exporting * 100)}%`}
                 </button>
               </>
             )}
           </div>
           <div className="bar"><div style={{ width: `${progress * 100}%` }} /></div>
-          <p className="hint">{live ? "Recording runs until you stop it." : "Export records in real time, so it takes as long as the song. Keep this tab in front."}</p>
+          <p className="hint">{exportNote || (live ? "Recording runs until you stop it." : "Renders frame by frame, usually faster than the song. 1080p H.264 mp4.")}</p>
         </section>
         <a className="gh" href="https://github.com/CreatorSet/o-dio" target="_blank" rel="noreferrer">open source · github.com/CreatorSet/o-dio</a>
       </aside>

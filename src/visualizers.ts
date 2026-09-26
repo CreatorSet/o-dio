@@ -104,6 +104,15 @@ function spline(ctx: CanvasRenderingContext2D, xs: ArrayLike<number>, ys: ArrayL
 }
 const sx = new Float32Array(1024), sy = new Float32Array(1024);
 
+/** Forget trails, ring history, spin and envelopes: called around an offline export. */
+export function resetFx() {
+  layer = null;
+  ringHist.length = 0;
+  env.clear();
+  waveSmooth.clear();
+  bassEnv = 0; prevBass = 0; kickEnv = 0; smoothLevel = 0;
+}
+
 function alive(ctx: CanvasRenderingContext2D, eng: Engine | null, p: Palette, w: number, h: number, t: number) {
   const b = eng ? eng.bands(12) : new Float32Array(12);
   const bass = (b[1] + b[2] + b[3]) / 3;
