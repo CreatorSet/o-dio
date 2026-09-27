@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createEngine, type Engine } from "./audio";
 import { draw, PALETTES, resetFx, STYLES, type Palette, type Scene, type StyleId } from "./visualizers";
-import { canExportOffline, download, exportOffline, startRecording } from "./export";
+import { canExportOffline, download, exportOffline } from "./export";
 import { createOfflineEngine } from "./offline";
 import { computePeaks, Transport, type Peaks } from "./Transport";
 import { CAPTION_STYLES, decodeForWhisper, groupLines, transcribe, type CaptionStyle, type Transcribe } from "./captions";
@@ -66,8 +66,6 @@ export default function App() {
   const [bumpy, setBumpy] = useState(true);
   const trackFile = useRef<File | null>(null);
   const [live, setLive] = useState<{ stream: MediaStream; kind: string } | null>(null);
-  const liveRec = useRef<{ stop: () => void } | null>(null);
-  const [progress, setProgress] = useState(0);
   const [peaks, setPeaks] = useState<Peaks | null>(null);
 
   const palette = paletteIdx === -1 ? custom : PALETTES[paletteIdx];
@@ -94,8 +92,6 @@ export default function App() {
         sceneRef.current.time = audioRef.current?.currentTime ?? 0;
         draw(ctx, engRef.current, sceneRef.current, c.width, c.height, (performance.now() - t0) / 1000);
       }
-      const el = audioRef.current;
-      if (el && el.duration) setProgress(el.currentTime / el.duration);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -229,20 +225,6 @@ export default function App() {
     setLive({ stream, kind });
   };
 
-  const recordLive = async () => {
-    if (!live) return;
-    if (liveRec.current) { liveRec.current.stop(); return; }
-    const eng = ensureEngine();
-    const t0 = Date.now();
-    const { rec, done, ext } = startRecording(canvasRef.current!, eng.stream, 60);
-    const iv = setInterval(() => setExporting((Date.now() - t0) / 1000), 500);
-    setExporting(0);
-    liveRec.current = { stop: () => { clearInterval(iv); rec.stop(); } };
-    const blob = await done;
-    liveRec.current = null;
-    setExporting(null);
-    download(blob, `${(title || "live").replace(/[^\w\- ]+/g, "")}.${ext}`);
-  };
 
   // Export: decode the file, then render every frame at its exact time straight into an
   // H.264/AAC mp4 with WebCodecs. Needs Chrome / Edge / Safari 16.4+; no real-time recording.
@@ -504,21 +486,17 @@ export default function App() {
 
         <section>
           <h2>Export</h2>
-          <div className="row actions">
-            {live ? (
-              <button className="primary" onClick={recordLive}>
-                {exporting === null ? "Start recording" : `Stop recording · ${Math.floor(exporting / 60)}:${String(Math.floor(exporting % 60)).padStart(2, "0")}`}
+          {live ? (
+            <p className="hint">Live mode is for watching. Load a file to export a video.</p>
+          ) : (
+            <>
+              <button className="primary export" onClick={exportVideo} disabled={!trackName || exporting !== null}>
+                {exporting === null ? `Export MP4 · ${aspect.id} · ${aspect.h >= 1080 && aspect.w >= 1080 ? "1080p" : "HD"} 60 fps` : `Rendering ${Math.round(exporting * 100)}%`}
               </button>
-            ) : (
-              <>
-                <button className="primary" onClick={exportVideo} disabled={!trackName || exporting !== null}>
-                  {exporting === null ? "Export video" : `${Math.round(exporting * 100)}%`}
-                </button>
-              </>
-            )}
-          </div>
-          <div className="bar"><div style={{ width: `${progress * 100}%` }} /></div>
-          <p className="hint">{exportNote || (live ? "Recording runs until you stop it." : "Renders frame by frame, usually faster than the song. 1080p H.264 mp4.")}</p>
+              {exporting !== null && <div className="bar"><div style={{ width: `${exporting * 100}%` }} /></div>}
+              <p className="hint">{exportNote || "Renders every frame from the file, usually faster than the song. Nothing is uploaded."}</p>
+            </>
+          )}
         </section>
         <a className="gh" href="https://github.com/CreatorSet/o-dio" target="_blank" rel="noreferrer">open source · github.com/CreatorSet/o-dio</a>
       </aside>

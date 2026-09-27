@@ -101,3 +101,5 @@ button:disabled { opacity: 0.4; cursor: default; }
 .liveBtn.on { border-color: #ff2d95; color: #fff; background: rgba(255,45,149,0.25); }
 .liveBtn.on .dot { background: #ff2d95; animation: blink 1.2s infinite; }
 .cards.one { grid-template-columns: 1fr; }
+
+.export { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 10px; }
