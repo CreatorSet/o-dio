@@ -6,10 +6,16 @@ import { createOfflineEngine } from "./offline";
 import { computePeaks, Transport, type Peaks } from "./Transport";
 import { CAPTION_STYLES, decodeForWhisper, groupLines, transcribe, type CaptionStyle, type Transcribe } from "./captions";
 
-/** Where "Generate with AI" goes. Override with VITE_BG_API when self-hosting; see the README. */
-const BG_API = import.meta.env.VITE_BG_API || "https://creatorset.com/api/odio/background";
-/** Hands out a short-lived token + the Modal URL for cloud captions (Whisper large-v3-turbo). */
-const CAPTIONS_TOKEN_API = import.meta.env.VITE_CAPTIONS_TOKEN_API || "https://creatorset.com/api/odio/captions-token";
+export type VisualizerProps = {
+  /** Where "Generate with AI" posts; see the README. */
+  bgApi?: string;
+  /** Hands out a short-lived token + the upload URL for cloud captions (Whisper large-v3-turbo). */
+  captionsTokenApi?: string;
+  /** Hide the in-panel title/tagline when the host page has its own chrome. */
+  embedded?: boolean;
+};
+const DEFAULT_BG_API = "https://creatorset.com/api/odio/background";
+const DEFAULT_CAPTIONS_TOKEN_API = "https://creatorset.com/api/odio/captions-token";
 
 const ASPECTS = [
   { id: "16:9", w: 1920, h: 1080 },
@@ -32,7 +38,9 @@ function StyleIcon({ id }: { id: StyleId }) {
   }
 }
 
-export default function App() {
+export default function App({ bgApi, captionsTokenApi, embedded }: VisualizerProps = {}) {
+  const BG_API = bgApi || DEFAULT_BG_API;
+  const CAPTIONS_TOKEN_API = captionsTokenApi || DEFAULT_CAPTIONS_TOKEN_API;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const engRef = useRef<Engine | null>(null);
@@ -361,10 +369,14 @@ export default function App() {
   }, [title]);
 
   return (
-    <div className="app" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+    <div className="odio app" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <aside className="panel">
-        <h1>CreatorSet<span className="ai">.ai</span></h1>
-        <p className="tag">Music visualizer. Drop or paste a track. Pick a look. Export.</p>
+        {!embedded && (
+          <>
+            <h1>CreatorSet<span className="ai">.ai</span></h1>
+            <p className="tag">Music visualizer. Drop or paste a track. Pick a look. Export.</p>
+          </>
+        )}
 
         <section>
           <h2>1 · Source</h2>

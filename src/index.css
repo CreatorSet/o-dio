@@ -1,105 +1,102 @@
-:root {
-  color-scheme: dark;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  background: #0a0a0f;
-  color: #f2f2f7;
-}
+:root { color-scheme: dark; background: #0a0a0f; }
+.odio { font-family: Inter, system-ui, -apple-system, sans-serif; background: #0a0a0f; color: #f2f2f7; font-size: 14px; line-height: 1.4; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-.app { display: grid; grid-template-columns: 320px 1fr; height: 100vh; }
-.panel { padding: 24px 20px; border-right: 1px solid #1d1d28; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-.panel h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
-.panel h1 .ai { background: linear-gradient(135deg, #ff2d95, #7b2dff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.panel section { display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px; border-top: 1px solid #1d1d28; }
-.panel section h2 { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8a8aa8; }
-.tag { margin: -6px 0 4px; color: #9a9ab0; font-size: 13px; }
-.file { display: block; border: 1px dashed #3a3a4d; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; color: #c9c9d9; }
-.file:hover { border-color: #7b2dff; }
-.file input { display: none; }
-input[type="text"], input:not([type]) { background: #14141c; border: 1px solid #26263a; color: #fff; border-radius: 8px; padding: 9px 10px; font-size: 14px; }
-.row { display: flex; gap: 6px; flex-wrap: wrap; }
-.row button { flex: 1 0 auto; background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 7px 8px; font-size: 13px; cursor: pointer; }
-.row button.on { border-color: #ff2d95; color: #fff; background: #1f1424; }
-.row button.swatch { flex: 0 0 34px; height: 34px; border-radius: 50%; padding: 0; }
-.row button.swatch.on { outline: 2px solid #fff; outline-offset: 2px; }
-.row.actions button { padding: 11px; font-weight: 600; }
-.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: #14141c; border: 1px solid #26263a; border-radius: 12px; padding: 12px; cursor: pointer; color: #c9c9d9; text-align: left; font: inherit; min-width: 0; }
-.card:hover { border-color: #7b2dff; background: #181824; }
-.card.on:hover { border-color: #fff; }
-.card.on { border-color: #ff2d95; background: #1f1424; color: #fff; }
-.card input { display: none; }
-.card.dim { opacity: 0.45; }
-.card .ic { font-size: 20px; line-height: 1; color: #ff2d95; margin-bottom: 4px; }
-.card b { font-size: 13px; }
-.card small { font-size: 11px; color: #8a8aa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.card.on small { color: #d9b8e6; }
-.live { background: #14141c; border: 1px dashed #3a3a4d; color: #c9c9d9; border-radius: 10px; padding: 10px 12px; font-size: 13px; cursor: pointer; text-align: left; }
-.live:hover { border-color: #2dfcff; }
-.live.on { border-style: solid; border-color: #ff2d95; color: #fff; background: #1f1424; }
-.row.actions .primary { background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
-button:disabled { opacity: 0.4; cursor: default; }
-.check { font-size: 13px; color: #c9c9d9; display: flex; align-items: center; gap: 8px; }
-.bar { height: 4px; background: #1d1d28; border-radius: 2px; overflow: hidden; }
-.bar div { height: 100%; background: linear-gradient(90deg, #ff2d95, #2dfcff); transition: width 0.2s linear; }
-.hint { font-size: 12px; color: #6f6f88; margin: 0; }
-.gh { margin-top: auto; font-size: 12px; color: #6f6f88; text-decoration: none; }
-.stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; min-height: 0; background: radial-gradient(ellipse at top, #12121c, #08080c); }
-.stageWrap { position: relative; display: flex; justify-content: center; max-width: 100%; min-height: 0; }
-.stageWrap > canvas { cursor: pointer; max-height: calc(100vh - 48px - 110px); min-height: 0; max-width: 100%; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+.odio.app{ display: grid; grid-template-columns: 320px 1fr; height: 100%; min-height: 0; }
+html, body, #root { height: 100%; }
+.odio .panel{ padding: 24px 20px; border-right: 1px solid #1d1d28; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.odio .panel h1{ margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+.odio .panel h1 .ai{ background: linear-gradient(135deg, #ff2d95, #7b2dff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.odio .panel section{ display: flex; flex-direction: column; gap: 8px; padding: 12px 0 14px; border-top: 1px solid #1d1d28; }
+.odio .panel section h2{ margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8a8aa8; }
+.odio .tag{ margin: -6px 0 4px; color: #9a9ab0; font-size: 13px; }
+.odio .file{ display: block; border: 1px dashed #3a3a4d; border-radius: 10px; padding: 10px 12px; cursor: pointer; font-size: 13px; color: #c9c9d9; }
+.odio .file:hover{ border-color: #7b2dff; }
+.odio .file input{ display: none; }
+.odio input[type="text"], .odio input:not([type]){ background: #14141c; border: 1px solid #26263a; color: #fff; border-radius: 8px; padding: 9px 10px; font-size: 14px; }
+.odio .row{ display: flex; gap: 6px; flex-wrap: wrap; }
+.odio .row button{ flex: 1 0 auto; background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 7px 8px; font-size: 13px; cursor: pointer; }
+.odio .row button.on{ border-color: #ff2d95; color: #fff; background: #1f1424; }
+.odio .row button.swatch{ flex: 0 0 34px; height: 34px; border-radius: 50%; padding: 0; }
+.odio .row button.swatch.on{ outline: 2px solid #fff; outline-offset: 2px; }
+.odio .row.actions button{ padding: 11px; font-weight: 600; }
+.odio .cards{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.odio .card{ display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: #14141c; border: 1px solid #26263a; border-radius: 12px; padding: 12px; cursor: pointer; color: #c9c9d9; text-align: left; font: inherit; min-width: 0; }
+.odio .card:hover{ border-color: #7b2dff; background: #181824; }
+.odio .card.on:hover{ border-color: #fff; }
+.odio .card.on{ border-color: #ff2d95; background: #1f1424; color: #fff; }
+.odio .card input{ display: none; }
+.odio .card.dim{ opacity: 0.45; }
+.odio .card .ic{ font-size: 20px; line-height: 1; color: #ff2d95; margin-bottom: 4px; }
+.odio .card b{ font-size: 13px; }
+.odio .card small{ font-size: 11px; color: #8a8aa8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.odio .card.on small{ color: #d9b8e6; }
+.odio .live{ background: #14141c; border: 1px dashed #3a3a4d; color: #c9c9d9; border-radius: 10px; padding: 10px 12px; font-size: 13px; cursor: pointer; text-align: left; }
+.odio .live:hover{ border-color: #2dfcff; }
+.odio .live.on{ border-style: solid; border-color: #ff2d95; color: #fff; background: #1f1424; }
+.odio .row.actions .primary{ background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
+.odio button:disabled{ opacity: 0.4; cursor: default; }
+.odio .check{ font-size: 13px; color: #c9c9d9; display: flex; align-items: center; gap: 8px; }
+.odio .bar{ height: 4px; background: #1d1d28; border-radius: 2px; overflow: hidden; }
+.odio .bar div{ height: 100%; background: linear-gradient(90deg, #ff2d95, #2dfcff); transition: width 0.2s linear; }
+.odio .hint{ font-size: 12px; color: #6f6f88; margin: 0; }
+.odio .gh{ margin-top: auto; font-size: 12px; color: #6f6f88; text-decoration: none; }
+.odio .stage{ display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; min-height: 0; background: radial-gradient(ellipse at top, #12121c, #08080c); }
+.odio .stageWrap{ position: relative; display: flex; justify-content: center; max-width: 100%; min-height: 0; }
+.odio .stageWrap > canvas{ cursor: pointer; max-height: calc(100vh - 48px - 110px); min-height: 0; max-width: 100%; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
 @media (max-width: 800px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
-  .panel { border-right: none; border-bottom: 1px solid #1d1d28; }
+  .odio.app{ grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; }
+  .odio .panel{ border-right: none; border-bottom: 1px solid #1d1d28; }
 }
 
-.transport { width: min(100%, 960px); display: grid; grid-template-columns: auto 1fr auto 150px; gap: 12px; align-items: center; background: #101018; border: 1px solid #1d1d28; border-radius: 14px; padding: 10px 12px; }
-.transport.off { opacity: 0.45; }
-.tControls { display: flex; align-items: center; gap: 6px; }
-.tControls button { background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 6px 8px; font-size: 12px; cursor: pointer; }
-.tControls button.play { width: 40px; height: 40px; border-radius: 50%; font-size: 14px; background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
-.tTime { font-size: 15px; color: #8a8aa8; font-variant-numeric: tabular-nums; min-width: 110px; text-align: center; }
-.tTime b { color: #fff; font-weight: 700; }
-.tTime .sep { margin: 0 5px; opacity: 0.5; }
-.tLeft { font-size: 12px; color: #8a8aa8; font-variant-numeric: tabular-nums; }
-.tWave { width: 100%; height: 64px; display: block; cursor: pointer; touch-action: none; }
-.tMeter { width: 150px; height: 64px; display: block; }
+.odio .transport{ width: min(100%, 960px); display: grid; grid-template-columns: auto 1fr auto 150px; gap: 12px; align-items: center; background: #101018; border: 1px solid #1d1d28; border-radius: 14px; padding: 10px 12px; }
+.odio .transport.off{ opacity: 0.45; }
+.odio .tControls{ display: flex; align-items: center; gap: 6px; }
+.odio .tControls button{ background: #14141c; border: 1px solid #26263a; color: #ddd; border-radius: 8px; padding: 6px 8px; font-size: 12px; cursor: pointer; }
+.odio .tControls button.play{ width: 40px; height: 40px; border-radius: 50%; font-size: 14px; background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; }
+.odio .tTime{ font-size: 15px; color: #8a8aa8; font-variant-numeric: tabular-nums; min-width: 110px; text-align: center; }
+.odio .tTime b{ color: #fff; font-weight: 700; }
+.odio .tTime .sep{ margin: 0 5px; opacity: 0.5; }
+.odio .tLeft{ font-size: 12px; color: #8a8aa8; font-variant-numeric: tabular-nums; }
+.odio .tWave{ width: 100%; height: 64px; display: block; cursor: pointer; touch-action: none; }
+.odio .tMeter{ width: 150px; height: 64px; display: block; }
 @media (max-width: 800px) {
-  .transport { grid-template-columns: 1fr 1fr; }
-  .tWave { grid-column: 1 / -1; }
-  .tMeter { width: 100%; }
+  .odio .transport{ grid-template-columns: 1fr 1fr; }
+  .odio .tWave{ grid-column: 1 / -1; }
+  .odio .tMeter{ width: 100%; }
 }
 
-.row button.swatch.custom { color: #fff; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
-.palEdit { display: flex; flex-direction: column; gap: 6px; background: #101018; border: 1px solid #1d1d28; border-radius: 10px; padding: 8px 10px; }
-.palRow { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8a8aa8; }
-.palRow span { min-width: 44px; }
-.palRow input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid #26263a; border-radius: 6px; background: none; cursor: pointer; }
-.slider { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8a8aa8; }
-.slider input[type="range"] { flex: 1; accent-color: #ff2d95; }
-.slider .x { background: none; border: 1px solid #26263a; color: #8a8aa8; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; }
+.odio .row button.swatch.custom{ color: #fff; font-size: 14px; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.odio .palEdit{ display: flex; flex-direction: column; gap: 6px; background: #101018; border: 1px solid #1d1d28; border-radius: 10px; padding: 8px 10px; }
+.odio .palRow{ display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8a8aa8; }
+.odio .palRow span{ min-width: 44px; }
+.odio .palRow input[type="color"]{ width: 30px; height: 26px; padding: 0; border: 1px solid #26263a; border-radius: 6px; background: none; cursor: pointer; }
+.odio .slider{ display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8a8aa8; }
+.odio .slider input[type="range"]{ flex: 1; accent-color: #ff2d95; }
+.odio .slider .x{ background: none; border: 1px solid #26263a; color: #8a8aa8; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; }
 
-.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.tile { display: flex; flex-direction: column; align-items: center; gap: 4px; background: #14141c; border: 1px solid #26263a; color: #b9b9cc; border-radius: 10px; padding: 8px 4px 6px; cursor: pointer; font: inherit; font-size: 11px; }
-.tile svg { width: 100%; height: 26px; }
-.tile:hover { border-color: #7b2dff; color: #fff; }
-.tile.on { border-color: #ff2d95; background: #1f1424; color: #fff; box-shadow: 0 0 0 1px #ff2d95 inset; }
-.tile.on svg { color: #ff2d95; }
+.odio .tiles{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.odio .tile{ display: flex; flex-direction: column; align-items: center; gap: 4px; background: #14141c; border: 1px solid #26263a; color: #b9b9cc; border-radius: 10px; padding: 8px 4px 6px; cursor: pointer; font: inherit; font-size: 11px; }
+.odio .tile svg{ width: 100%; height: 26px; }
+.odio .tile:hover{ border-color: #7b2dff; color: #fff; }
+.odio .tile.on{ border-color: #ff2d95; background: #1f1424; color: #fff; box-shadow: 0 0 0 1px #ff2d95 inset; }
+.odio .tile.on svg{ color: #ff2d95; }
 
-.tControls button.play.stop { background: #ff2d95; }
-.liveDot { color: #ff2d95; font-weight: 700; animation: blink 1.2s infinite; }
+.odio .tControls button.play.stop{ background: #ff2d95; }
+.odio .liveDot{ color: #ff2d95; font-weight: 700; animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: 0.35; } }
 
-.gen { display: flex; gap: 6px; }
-.gen input { flex: 1; min-width: 0; }
-.gen .primary { background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.odio .gen{ display: flex; gap: 6px; }
+.odio .gen input{ flex: 1; min-width: 0; }
+.odio .gen .primary{ background: linear-gradient(135deg, #ff2d95, #7b2dff); border: none; color: #fff; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
-.row.fx { gap: 14px; margin-top: 2px; }
+.odio .row.fx{ gap: 14px; margin-top: 2px; }
 
-.liveBtn { position: absolute; top: 12px; right: 12px; z-index: 2; display: flex; align-items: center; gap: 6px; background: rgba(10,10,15,0.65); border: 1px solid rgba(255,255,255,0.15); color: #ddd; border-radius: 999px; padding: 6px 12px 6px 9px; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); }
-.liveBtn .dot { width: 8px; height: 8px; border-radius: 50%; background: #8a8aa8; }
-.liveBtn:hover { border-color: #ff2d95; color: #fff; }
-.liveBtn.on { border-color: #ff2d95; color: #fff; background: rgba(255,45,149,0.25); }
-.liveBtn.on .dot { background: #ff2d95; animation: blink 1.2s infinite; }
-.cards.one { grid-template-columns: 1fr; }
+.odio .liveBtn{ position: absolute; top: 12px; right: 12px; z-index: 2; display: flex; align-items: center; gap: 6px; background: rgba(10,10,15,0.65); border: 1px solid rgba(255,255,255,0.15); color: #ddd; border-radius: 999px; padding: 6px 12px 6px 9px; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); }
+.odio .liveBtn .dot{ width: 8px; height: 8px; border-radius: 50%; background: #8a8aa8; }
+.odio .liveBtn:hover{ border-color: #ff2d95; color: #fff; }
+.odio .liveBtn.on{ border-color: #ff2d95; color: #fff; background: rgba(255,45,149,0.25); }
+.odio .liveBtn.on .dot{ background: #ff2d95; animation: blink 1.2s infinite; }
+.odio .cards.one{ grid-template-columns: 1fr; }
 
-.export { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 10px; }
+.odio .export{ width: 100%; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 10px; }
